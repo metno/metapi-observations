@@ -1,0 +1,12 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /v0/kdvh/:stationId         controllers.ObservationsController.kdvhLookup(stationId: Int, from: String, to: String, parameters: String)
+GET     /v0/observations.:format    controllers.ObservationsController.observations(sources: String, reftime: String, parameters: String, format: String)
+
+GET     /api-docs       controllers.ApiHelpController.getResource(path = "/observations")
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)
