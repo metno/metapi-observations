@@ -1,7 +1,8 @@
 KDVH reading service for met-api
 ================================
 
-This implements a service for reading data from a kdvh database.
+This implements a service for reading observations data, currently 
+from a kdvh database.
 
 
 Setup
@@ -20,3 +21,4 @@ to set these options.
 
 You can find a template file under conf, to make the creation a bit
 easier.
+
