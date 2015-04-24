@@ -1,5 +1,5 @@
-KDVH reading service for met-api
-================================
+Observations access service for met-api
+=======================================
 
 This implements a service for reading observations data, currently 
 from a kdvh database.
