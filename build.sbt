@@ -1,4 +1,4 @@
-name := """metapi-observations"""
+name := """observations"""
 
 organization := "no.met.data"
 
@@ -52,7 +52,7 @@ libraryDependencies ++= Seq(
  "com.github.nscala-time" %% "nscala-time" % "1.8.0",
  "com.oracle" % "ojdbc14" % "10.2.0.1.0",
   ws,
-  "no.met.data" %% "metapi-auth" % "0.1-SNAPSHOT"
+  "no.met.data" %% "auth" % "0.1-SNAPSHOT"
 )
 
 PlayKeys.devSettings += ("application.router", "observations.Routes")
