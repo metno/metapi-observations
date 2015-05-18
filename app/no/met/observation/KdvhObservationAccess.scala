@@ -26,6 +26,7 @@
 package no.met.observation
 
 import java.util.Date
+import no.met.time._
 import no.met.kdvh._
 import com.github.nscala_time.time.Imports._
 import play.api.Logger
@@ -40,11 +41,11 @@ class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
   /**
    * Get observation data from a single source
    */
-  private def observations(source: Int, reftime: TimeSpecification, parameters: Seq[String]): Seq[Observation] = {
+  private def observations(source: Int, reftime: TimeSpecification.Range, parameters: Seq[String]): Seq[Observation] = {
 
     val kdvhParameters: Seq[String] = parameters map (translator.kdvhName(_))
 
-    val databaseResult = kdvh.getData(source, reftime.range, kdvhParameters)
+    val databaseResult = kdvh.getData(source, reftime, kdvhParameters)
 
     // If you run a test, and get a NullPointerException, it is because you
     // have made an error when setting up KdvhAccess mocking object, so the
@@ -61,7 +62,7 @@ class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
     }
   }
 
-  override def observations(sources: Seq[Int], reftime: TimeSpecification, parameters: Seq[String]): Seq[ObservationSeries] = {
+  override def observations(sources: Seq[Int], reftime: TimeSpecification.Range, parameters: Seq[String]): Seq[ObservationSeries] = {
     sources.map((source) => ObservationSeries(source, observations(source, reftime, parameters)))
   }
 }

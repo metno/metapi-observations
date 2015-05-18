@@ -25,6 +25,7 @@
 
 package no.met.observation
 
+import no.met.time._
 import java.util.Date
 
 /**
@@ -42,5 +43,5 @@ trait ObservationAccess {
    * @return The found observations, matching the request
    */
   @throws[Exception]("in case something went wrong")
-  def observations(sources: Seq[Int], reftime: TimeSpecification, parameters: Seq[String]): Seq[ObservationSeries]
+  def observations(sources: Seq[Int], reftime: TimeSpecification.Range, parameters: Seq[String]): Seq[ObservationSeries]
 }

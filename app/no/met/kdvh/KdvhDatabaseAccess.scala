@@ -25,7 +25,9 @@
 
 package no.met.kdvh
 
+import no.met.time._
 import anorm._
+import play.Logger
 import java.sql.Connection
 import com.github.nscala_time.time.Imports._
 
@@ -37,7 +39,7 @@ import com.github.nscala_time.time.Imports._
  */
 class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
 
-  override def getData(stationId: Int, obstime: Interval, parameters: Seq[String]): Seq[KdvhQueryResult] = {
+  override def getData(stationId: Int, obstime: Seq[Interval], parameters: Seq[String]): Seq[KdvhQueryResult] = {
     var ret = List[KdvhQueryResult]()
 
     if (!parameters.isEmpty) {
@@ -51,26 +53,26 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
         val qualityTable = qualityTableFor(table)
 
         val query = s"""
-        SELECT
-          d.stnr,
-          TO_CHAR(d.dato, '$dateFormat') AS obstime,
-          d.typeid,
-          $param
-        FROM
-          $table d,
-          $qualityTable q
-        WHERE
-          d.stnr = q.stnr AND
-          d.dato = q.dato AND
-          d.typeid = q.typeid AND
-          d.stnr={stnr} AND
-          ${timeQueryFragment(obstime)}
-        ORDER BY
-          d.stnr, d.dato, d.typeid"""
-        val result = SQL(query).on(
-          "stnr" -> stationId,
-          "start" -> obstime.getStart().toString,
-          "end" -> obstime.getEnd().toString)()(connection)
+        |SELECT
+          |d.stnr,
+          |TO_CHAR(d.dato, '$dateFormat') AS obstime,
+          |d.typeid,
+          |$param
+        |FROM
+          |$table d,
+          |$qualityTable q
+        |WHERE
+          |d.stnr = q.stnr AND
+          |d.dato = q.dato AND
+          |d.typeid = q.typeid AND
+          |d.stnr=$stationId AND
+          |${timeQueryFragment(obstime)}
+        |ORDER BY
+          |d.stnr, d.dato, d.typeid""".stripMargin
+
+        Logger.debug(query)
+
+        val result = SQL(query)()(connection)
         val results = result map (new KdvhQueryResult(_, tableParameters))
 
         ret = KdvhQueryResult.merge(ret, results)
@@ -96,7 +98,7 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
    *          signifying what tables contain which ones of the requested
    *          parameters.
    */
-  private def observationTables(stationId: Int, obstime: Interval, parameters: Traversable[String]): Map[String, Seq[String]] = {
+  private def observationTables(stationId: Int, obstime: TimeSpecification.Range, parameters: Traversable[String]): Map[String, Seq[String]] = {
 
     val param = parameters reduce (_ + "', '" + _)
     val query = s"""
@@ -111,8 +113,8 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
         (tdato IS NULL OR tdato >= TO_DATE({end}, '$dateFormat'))"""
     val result = SQL(query).on(
       "stnr" -> stationId,
-      "start" -> obstime.getStart().toString,
-      "end" -> obstime.getEnd().toString)()(connection)
+      "start" -> TimeSpecification.min(obstime).toString,
+      "end" -> TimeSpecification.max(obstime).toString)()(connection)
 
     val ret = collection.mutable.Map[String, List[String]]()
 
@@ -131,12 +133,16 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
   /**
    * Get a fragment of an sql query, specifying the time we want data for
    */
-  private def timeQueryFragment(obstime: Interval): String = {
-    if (obstime.duration == new Duration(0)) {
-      s"d.dato = TO_DATE({start}, '$dateFormat')"
-    } else {
-      s"d.dato >= TO_DATE({start}, '$dateFormat') AND d.dato < TO_DATE({end}, '$dateFormat')"
+  private def timeQueryFragment(obstime: Seq[Interval]): String = {
+    def sqlStringify(t: Interval): String = {
+      if (t.duration == new Duration(0)) {
+        s"d.dato = TO_DATE('${t.getStart}', '$dateFormat')"
+      } else {
+        s"(d.dato >= TO_DATE('${t.getStart}', '$dateFormat') AND d.dato <= TO_DATE('${t.getEnd}', '$dateFormat'))"
+      }
     }
+    val alternatives = obstime map { sqlStringify _ } reduce { _ + " OR " + _ }
+    s"($alternatives)"
   }
 
   /**

@@ -35,6 +35,7 @@ import com.wordnik.swagger.annotations._
 import com.github.nscala_time.time.Imports._
 import no.met.kdvh._
 import no.met.observation._
+import no.met.time._
 
 // $COVERAGE-OFF$ To be tested later, when interface is more permanent
 
@@ -57,7 +58,7 @@ object ObservationsController extends Controller {
 
     DB.withConnection("kdvh") { implicit conn =>
       val kdhv = new KdvhDatabaseAccess(conn)
-      val data = kdhv.getData(stationId, start to end, parameterList)
+      val data = kdhv.getData(stationId, List(start to end), parameterList)
       if (data.isEmpty) {
         NotFound("Found no data for station " + stationId)
       } else {
@@ -91,7 +92,7 @@ object ObservationsController extends Controller {
     DB.withConnection("kdvh") { implicit conn =>
       Try {
         val sourceList = sources split "," map (_.trim().toInt)
-        val times = new TimeSpecification(reftime)
+        val times = TimeSpecification.parse(reftime).get
         val parameterList = parameters split "," map (_ trim)
 
         val kdvh = new KdvhDatabaseAccess(conn)

@@ -27,6 +27,7 @@ package test
 
 import no.met.observation._
 import no.met.kdvh._
+import no.met.time._
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
@@ -48,14 +49,14 @@ class KdvhObservationAccessSpec extends Specification with Mockito {
 
     "retrieve data" in {
       val instant = DateTime.parse("2015-02-05T06:00:00Z")
-      val time = instant to instant
+      val time = Seq(instant to instant)
 
       val kdvh = mock[KdvhAccess]
       kdvh.getData(180, time, List("RR_24", "TA")) returns List(
         KdvhQueryResult(180, "2015-02-05T06:00:00Z",
           Map("RR_24" -> ObservedData(Some(x)), "TA" -> ObservedData(Some(y)))))
       val dataSource = new KdvhObservationAccess(kdvh)
-      val data = dataSource observations (List(180), TimeSpecification("2015-02-05T06:00:00Z"), List("precipitation_amount", "air_temperature"))
+      val data = dataSource observations (List(180), TimeSpecification.parse("2015-02-05T06:00:00Z").get, List("precipitation_amount", "air_temperature"))
 
       data.size must equalTo(1)
       data(0) must equalTo(Observation.series(180, instant, List("precipitation_amount" -> (x, None), "air_temperature" -> (y, None))))
@@ -64,7 +65,7 @@ class KdvhObservationAccessSpec extends Specification with Mockito {
     "retrieve data series" in {
       val start = DateTime.parse("2015-02-01T06:00:00Z")
       val stop = DateTime.parse("2015-02-05T06:00:00Z")
-      val time = start to stop
+      val time = Seq(start to stop)
 
       val kdvhList = List(
         KdvhQueryResult(180, "2015-02-01T06:00:00Z", Map("TAN" -> ObservedData(Some(x)), "TAX" -> ObservedData(Some(y)))),
@@ -76,7 +77,7 @@ class KdvhObservationAccessSpec extends Specification with Mockito {
 
       val dataSource = new KdvhObservationAccess(kdvh)
       val data = dataSource observations (List(180),
-        TimeSpecification("2015-02-01T06:00:00Z/2015-02-05T06:00:00Z"),
+        TimeSpecification.parse("2015-02-01T06:00:00Z/2015-02-05T06:00:00Z").get,
         List("min_air_temperature", "max_air_temperature"))
 
       val expectedData = List(

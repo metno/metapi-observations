@@ -41,7 +41,7 @@ trait KdvhAccess {
    *
    * @return A sequence of KdvhQueryResult objects, containing the requested data
    */
-  def getData(stationId: Int, obstime: Interval, parameters: Seq[String]): Seq[KdvhQueryResult]
+  def getData(stationId: Int, obstime: Seq[Interval], parameters: Seq[String]): Seq[KdvhQueryResult]
 }
 
 object KdvhAccess {
