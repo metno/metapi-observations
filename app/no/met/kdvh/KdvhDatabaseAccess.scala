@@ -39,20 +39,31 @@ import com.github.nscala_time.time.Imports._
  */
 class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
 
-  override def getData(stationId: Int, obstime: Seq[Interval], parameters: Seq[String]): Seq[KdvhQueryResult] = {
-    var ret = List[KdvhQueryResult]()
+  private def queryWithoutQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], parameters: Seq[String]): String = {
 
-    if (!parameters.isEmpty) {
+    val param = tableParameters map ("d." + _) reduce (_ + ", " + _)
 
-      KdvhAccess.sanitize(parameters)
+    s"""
+        SELECT
+          |d.stnr,
+          |TO_CHAR(d.dato, '$dateFormat') AS obstime,
+          |d.typeid,
+          |$param
+        |FROM
+          |$table d
+        |WHERE
+          |d.stnr=$stationId AND
+          |${timeQueryFragment(obstime)}
+        |ORDER BY
+          |d.stnr, d.dato, d.typeid""".stripMargin
+  }
 
-      val tables = observationTables(stationId, obstime, parameters)
+  private def queryWithQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], parameters: Seq[String]): String = {
 
-      for ((table, tableParameters) <- tables) {
-        val param = tableParameters map ((t) => s"d.$t, q.$t as ${t}_flag") reduce (_ + ", " + _)
-        val qualityTable = qualityTableFor(table)
+    val param = tableParameters map (t => s"d.$t, q.$t as ${t}_flag") reduce (_ + ", " + _)
+    val qualityTable = qualityTableFor(table)
 
-        val query = s"""
+    s"""
         |SELECT
           |d.stnr,
           |TO_CHAR(d.dato, '$dateFormat') AS obstime,
@@ -69,12 +80,25 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
           |${timeQueryFragment(obstime)}
         |ORDER BY
           |d.stnr, d.dato, d.typeid""".stripMargin
+  }
 
-        Logger.debug(query)
+  override def getData(stationId: Int, obstime: Seq[Interval], parameters: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult] = {
+    var ret = List[KdvhQueryResult]()
 
+    if (!parameters.isEmpty) {
+
+      KdvhAccess.sanitize(parameters)
+
+      val tables = observationTables(stationId, obstime, parameters)
+
+      for ((table, tableParameters) <- tables) {
+
+        val query = withQuality match {
+          case true => queryWithQuality(table, tableParameters, stationId, obstime, parameters)
+          case false => queryWithoutQuality(table, tableParameters, stationId, obstime, parameters)
+        }
         val result = SQL(query)()(connection)
-        val results = result map (new KdvhQueryResult(_, tableParameters))
-
+        val results = result map (KdvhQueryResult(_, tableParameters))
         ret = KdvhQueryResult.merge(ret, results)
       }
     }
@@ -102,15 +126,15 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
 
     val param = parameters reduce (_ + "', '" + _)
     val query = s"""
-      SELECT
-        distinct table_name, elem_code
-      FROM
-        t_elem_obs
-      WHERE
-        stnr={stnr} AND
-        elem_code IN ('$param') AND
-        fdato <= TO_DATE({start}, '$dateFormat') AND
-        (tdato IS NULL OR tdato >= TO_DATE({end}, '$dateFormat'))"""
+      |SELECT
+        |distinct table_name, elem_code
+      |FROM
+        |t_elem_obs
+      |WHERE
+        |stnr={stnr} AND
+        |elem_code IN ('$param') AND
+        |fdato <= TO_DATE({start}, '$dateFormat') AND
+        |(tdato IS NULL OR tdato >= TO_DATE({end}, '$dateFormat'))""".stripMargin
     val result = SQL(query).on(
       "stnr" -> stationId,
       "start" -> TimeSpecification.min(obstime).toString,

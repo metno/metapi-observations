@@ -27,11 +27,21 @@ package no.met.observation
 
 import no.met.time._
 import java.util.Date
+import scala.util._
+
+object Field extends Enumeration {
+  type Field = Value
+  val value, quality = Value
+
+  val default = Set(value, quality)
+}
 
 /**
  * Interface for retrieving observation data from a data source
  */
 trait ObservationAccess {
+
+  import Field._
 
   /**
    * Retrieve a set of observations
@@ -43,5 +53,5 @@ trait ObservationAccess {
    * @return The found observations, matching the request
    */
   @throws[Exception]("in case something went wrong")
-  def observations(sources: Seq[Int], reftime: TimeSpecification.Range, parameters: Seq[String]): Seq[ObservationSeries]
+  def observations(sources: Seq[Int], reftime: TimeSpecification.Range, parameters: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
 }

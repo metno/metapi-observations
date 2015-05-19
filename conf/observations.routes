@@ -3,7 +3,7 @@
 # ~~~~
 
 # MET API
-GET     /v0.:format                 controllers.ObservationsController.observations(sources: String, reftime: String, parameters: String, format: String)
+GET     /v0.:format                 controllers.ObservationsController.observations(sources: String, reftime: String, parameters: String, fields: Option[String], format: String)
 
 GET     /api-docs                   controllers.ApiHelpController.getResource(path = "/observations")
 

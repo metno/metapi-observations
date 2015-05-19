@@ -26,6 +26,8 @@
 package no.met.kdvh
 
 import anorm.Row
+import play.Logger
+import scala.util._
 
 case class ObservedData(value: Option[Double], quality: Option[String] = None)
 
@@ -34,27 +36,6 @@ case class ObservedData(value: Option[Double], quality: Option[String] = None)
  */
 case class KdvhQueryResult(val stationId: BigDecimal, val date: String,
   val parameter: Map[String, ObservedData]) {
-
-  /**
-   * Construct from the result of a query for at least stnr, data and the given parameters
-   *
-   * @param row The database result row to read
-   * @param parameters Parameter names to extract
-   */
-  def this(row: Row, parameters: Seq[String]) {
-    //$COVERAGE-OFF$Not testing database queries
-    this(
-      row[java.math.BigDecimal]("stnr"),
-      row[String]("obstime"),
-      parameters.foldLeft(Map.empty[String, ObservedData]) {
-        (m, v) =>
-          m + (v -> ObservedData(
-            row[Option[Double]](v),
-            row[Option[String]](v + "_flag")))
-      })
-    //parameters.foldLeft(Map.empty[String, Option[String]]) { (m, v) => m + (v -> row[Option[String]](v + "_flag")) })
-    //$COVERAGE-ON$
-  }
 
   def header: String = {
     //$COVERAGE-OFF$Throw-away code
@@ -113,6 +94,35 @@ case class KdvhQueryResult(val stationId: BigDecimal, val date: String,
 }
 
 object KdvhQueryResult {
+
+  /**
+   * Construct from the result of a query for at least stnr, data and the given parameters
+   *
+   * @param row The database result row to read
+   * @param parameters Parameter names to extract
+   */
+  def apply(row: Row, parameters: Seq[String]): KdvhQueryResult = {
+    //$COVERAGE-OFF$Not testing database queries
+
+    val r = row.asMap
+
+    val stnr = row[java.math.BigDecimal]("stnr")
+    val obstime = row[String]("obstime")
+    val data = parameters.foldLeft(Map.empty[String, ObservedData]) {
+      (m, v) =>
+
+        val value = row[Option[Double]](v)
+        val flags = Try { row[Option[String]](s"${v}_flag") } match {
+          case Success(flag) => flag
+          case Failure(x) => None
+        }
+
+        m + (v -> ObservedData(value, flags))
+    }
+
+    new KdvhQueryResult(stnr, obstime, data)
+    //$COVERAGE-ON$
+  }
 
   /**
    * Merge two sequences of KdvhQueryResult into one sequence. Each element in

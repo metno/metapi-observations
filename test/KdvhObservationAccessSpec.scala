@@ -52,11 +52,14 @@ class KdvhObservationAccessSpec extends Specification with Mockito {
       val time = Seq(instant to instant)
 
       val kdvh = mock[KdvhAccess]
-      kdvh.getData(180, time, List("RR_24", "TA")) returns List(
+      kdvh.getData(180, time, List("RR_24", "TA"), true) returns List(
         KdvhQueryResult(180, "2015-02-05T06:00:00Z",
           Map("RR_24" -> ObservedData(Some(x)), "TA" -> ObservedData(Some(y)))))
       val dataSource = new KdvhObservationAccess(kdvh)
-      val data = dataSource observations (List(180), TimeSpecification.parse("2015-02-05T06:00:00Z").get, List("precipitation_amount", "air_temperature"))
+      val data = dataSource observations (List(180),
+        TimeSpecification.parse("2015-02-05T06:00:00Z").get,
+        List("precipitation_amount", "air_temperature"),
+        Set(Field.value, Field.quality))
 
       data.size must equalTo(1)
       data(0) must equalTo(Observation.series(180, instant, List("precipitation_amount" -> (x, None), "air_temperature" -> (y, None))))
@@ -73,12 +76,13 @@ class KdvhObservationAccessSpec extends Specification with Mockito {
         KdvhQueryResult(180, "2015-02-03T06:00:00Z", Map("TAN" -> ObservedData(Some(x)), "TAX" -> ObservedData(Some(y)))),
         KdvhQueryResult(180, "2015-02-04T06:00:00Z", Map("TAN" -> ObservedData(Some(x)), "TAX" -> ObservedData(Some(y)))))
       val kdvh = mock[KdvhAccess]
-      kdvh.getData(180, time, List("TAN", "TAX")) returns kdvhList
+      kdvh.getData(180, time, List("TAN", "TAX"), true) returns kdvhList
 
       val dataSource = new KdvhObservationAccess(kdvh)
       val data = dataSource observations (List(180),
         TimeSpecification.parse("2015-02-01T06:00:00Z/2015-02-05T06:00:00Z").get,
-        List("min_air_temperature", "max_air_temperature"))
+        List("min_air_temperature", "max_air_temperature"),
+        Set(Field.value, Field.quality))
 
       val expectedData = List(
         ObservedElement("min_air_temperature", Some(x), None),

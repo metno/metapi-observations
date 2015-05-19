@@ -58,7 +58,7 @@ object ObservationsController extends Controller {
 
     DB.withConnection("kdvh") { implicit conn =>
       val kdhv = new KdvhDatabaseAccess(conn)
-      val data = kdhv.getData(stationId, List(start to end), parameterList)
+      val data = kdhv.getData(stationId, List(start to end), parameterList, false)
       if (data.isEmpty) {
         NotFound("Found no data for station " + stationId)
       } else {
@@ -86,6 +86,8 @@ object ObservationsController extends Controller {
     @ApiParam(value = "Data source, comma separated", required = true)@QueryParam("sources") sources: String,
     @ApiParam(value = "Time range to get data for", required = true)@QueryParam("reftime") reftime: String,
     @ApiParam(value = "Phenomena to access", required = true)@QueryParam("parameters") parameters: String,
+    @ApiParam(value = "Fields to access", required = false, allowableValues = "all,value,quality",
+      defaultValue = "all")@QueryParam("fields") fields: Option[String],
     @ApiParam(value = "output format", required = true, allowableValues = "json,csv",
       defaultValue = "json")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
 
@@ -95,9 +97,24 @@ object ObservationsController extends Controller {
         val times = TimeSpecification.parse(reftime).get
         val parameterList = parameters split "," map (_ trim)
 
+        val fieldList = fields match {
+          case None => Field.default
+          case Some("all") => Field.default
+          case Some("") => Field.default
+          case Some(field) => {
+            field toLowerCase () split "," map { f =>
+              try {
+                Field withName f.trim()
+              } catch {
+                case x: NoSuchElementException => throw new NoSuchElementException(s"$f is not a valid field")
+              }
+            } toSet
+          }
+        }
+
         val kdvh = new KdvhDatabaseAccess(conn)
         val obsAccess = new KdvhObservationAccess(kdvh)
-        obsAccess.observations(sourceList, times, parameterList)
+        obsAccess.observations(sourceList, times, parameterList, fieldList)
       } match {
         case Success(data) =>
           if (data isEmpty) {
