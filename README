@@ -1,7 +1,7 @@
 Observations access service for met-api
 =======================================
 
-This implements a service for reading observations data, currently 
+This implements a service for reading observations data, currently
 from a kdvh database.
 
 
@@ -21,4 +21,3 @@ to set these options.
 
 You can find a template file under conf, to make the creation a bit
 easier.
-

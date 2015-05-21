@@ -26,6 +26,7 @@
 package no.met.kdvh
 
 import com.github.nscala_time.time.Imports._
+import scala.annotation.tailrec
 
 /**
  * Access to a kdvh database - interface definition
@@ -56,6 +57,7 @@ object KdvhAccess {
 
   }
 
+  @tailrec
   def sanitize(parameters: Traversable[String]) {
     if (parameters != Nil) {
       sanitize(parameters head)

@@ -14,5 +14,8 @@ dist
 /RUNNING_PID
 /.settings
 conf/development.conf
+/bin/
+/.eclipse_build/
+.cache
 .worksheet/
 *.sc

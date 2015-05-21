@@ -37,27 +37,35 @@ class JsonFormatSpec extends Specification {
 
   val station = 180
   val time = DateTime.parse("2015-02-01T06:00:00Z")
-
+  val start = DateTime.now
   "json formatter" should {
 
     "create some output" in {
 
       val data = Observation.series(station, time, Map("air_temperature" -> (2, Some("70000"))))
-      val output = JsonFormat.format(List(data))
+      val output = JsonFormat.format(start, List(data))
 
-      val fullJson = Json.parse(output)
-      fullJson.as[JsArray].value.size must equalTo(1)
+      val json = Json.parse(output)
 
-      val json = fullJson(0)
-      (json \\ "observations").size must equalTo(1)
-      ((json \ "observations")(0) \\ "data").size must equalTo(1)
+      (json \\"data").size must equalTo(1)
+      val dataCollection = (json \ "data")(0)
 
-      val obsData = ((json \ "observations")(0) \ "data")(0)
-      val temperature = obsData \ "air_temperature"
+      (dataCollection \ "@type") must equalTo( JsString("DataCollection"))
+      (dataCollection \ "source") must equalTo( JsString("KS180") )
+      (dataCollection \ "level") must equalTo( JsString("ground_level") )
+      (dataCollection \ "geometry" \ "type") must equalTo( JsString("Point") )
+      (dataCollection \ "geometry" \ "coordinates") must equalTo(JsArray(Seq( JsNumber(9.0), JsNumber(62.3))))
 
-      (json \ "source") must equalTo(JsNumber(station))
+      val obsData = (dataCollection \ "dataSet")(0)
+
+      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
+
+      val values = (obsData \ "values")(0)
+      val temperature = values \ "air_temperature"
+
       temperature \ "value" must equalTo(JsNumber(2))
-      temperature \ "quality" must equalTo(JsString("70000"))
+      temperature \ "qualityCode" must equalTo(JsString("70000"))
+      temperature \ "unit" must equalTo(JsString("celsius"))
     }
 
   }

@@ -32,9 +32,11 @@ import play.api.db._
 import javax.ws.rs.{ QueryParam, PathParam }
 import util._
 import com.wordnik.swagger.annotations._
+import com.github.nscala_time.time.Imports.DateTime
 import com.github.nscala_time.time.Imports._
 import no.met.kdvh._
 import no.met.observation._
+import no.met.observation.Field._
 import no.met.time._
 
 // $COVERAGE-OFF$ To be tested later, when interface is more permanent
@@ -67,6 +69,21 @@ object ObservationsController extends Controller {
     }
   }
 
+  def fieldSet(fields: Option[String]): Set[Field] = fields match {
+    case None => Field.default
+    case Some("all") => Field.default
+    case Some("") => Field.default
+    case Some(field) => {
+      field toLowerCase () split "," map { f =>
+        try {
+          Field withName f.trim()
+        } catch {
+          case x: NoSuchElementException => throw new NoSuchElementException(s"$f is not a valid field")
+        }
+      } toSet
+    }
+  }
+
   /**
    * Lookup data from kdvh, using data.met.no interface
    *
@@ -88,30 +105,17 @@ object ObservationsController extends Controller {
     @ApiParam(value = "Phenomena to access", required = true)@QueryParam("parameters") parameters: String,
     @ApiParam(value = "Fields to access", required = false, allowableValues = "all,value,quality",
       defaultValue = "all")@QueryParam("fields") fields: Option[String],
-    @ApiParam(value = "output format", required = true, allowableValues = "json,csv",
-      defaultValue = "json")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
+    @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
+      defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
+
+   val start = DateTime.now(DateTimeZone.UTC)
 
     DB.withConnection("kdvh") { implicit conn =>
       Try {
         val sourceList = sources split "," map (_.trim().toInt)
         val times = TimeSpecification.parse(reftime).get
         val parameterList = parameters split "," map (_ trim)
-
-        val fieldList = fields match {
-          case None => Field.default
-          case Some("all") => Field.default
-          case Some("") => Field.default
-          case Some(field) => {
-            field toLowerCase () split "," map { f =>
-              try {
-                Field withName f.trim()
-              } catch {
-                case x: NoSuchElementException => throw new NoSuchElementException(s"$f is not a valid field")
-              }
-            } toSet
-          }
-        }
-
+        val fieldList = fieldSet( fields )
         val kdvh = new KdvhDatabaseAccess(conn)
         val obsAccess = new KdvhObservationAccess(kdvh)
         obsAccess.observations(sourceList, times, parameterList, fieldList)
@@ -123,7 +127,7 @@ object ObservationsController extends Controller {
             val header = CsvFormat header data(0)
             format.toLowerCase() match {
               case "csv" => Ok(data.foldLeft(header)(_ + '\n' + CsvFormat.format(_)))
-              case "json" => Ok(JsonFormat.format(data))
+              case "jsonld" => Ok(JsonFormat.format(start, data))
               case x => BadRequest(s"Invalid output format: $x")
             }
           }
