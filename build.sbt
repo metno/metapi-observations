@@ -49,7 +49,7 @@ libraryDependencies ++= Seq(
   cache,
  "com.wordnik" %% "swagger-play2" % "1.3.12",
  "com.wordnik" %% "swagger-play2-utils" % "1.3.12",
- "com.github.nscala-time" %% "nscala-time" % "1.8.0",
+ "com.github.nscala-time" %% "nscala-time" % "2.0.0",
  "com.oracle" % "ojdbc14" % "10.2.0.1.0",
   ws,
   "no.met.data" %% "auth" % "0.1-SNAPSHOT"

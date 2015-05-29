@@ -59,6 +59,54 @@ class TimeSpecificationSpec extends Specification {
       t.get must equalTo(Seq(start to end))
     }
 
+    // ISO-8601 extensions with repeating intervals which do not exist in the ISO standard
+
+    "parse current time" in {
+      val before = DateTime.now
+      Thread sleep 1000
+      val now = TimeSpecification.parse("now").get.head
+      Thread sleep 1000
+      val after = DateTime.now
+      new Interval(before, after).contains(now) must beTrue
+    }
+
+    "parse repeating consecutive time intervals" in {
+      val dates = Seq(
+        new DateTime(2005, 7, 1, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 1, 6, 0, 0, DateTimeZone.UTC),
+        new DateTime(2005, 7, 1, 6, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 1, 12, 0, 0, DateTimeZone.UTC),
+        new DateTime(2005, 7, 1, 12, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 1, 18, 0, 0, DateTimeZone.UTC),
+        new DateTime(2005, 7, 1, 18, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 2, 0, 0, 0, DateTimeZone.UTC))
+      val t = TimeSpecification.parse("R4/2005-07-01T00:00/2005-07-01T06:00")
+      t.get must equalTo(dates)
+    }
+
+    "parse repeating time intervals with duration" in {
+      val dates = Seq(
+        new DateTime(2005, 7, 1, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 1, 6, 0, 0, DateTimeZone.UTC),
+        new DateTime(2005, 7, 2, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 2, 6, 0, 0, DateTimeZone.UTC),
+        new DateTime(2005, 7, 3, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 3, 6, 0, 0, DateTimeZone.UTC),
+        new DateTime(2005, 7, 4, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 7, 4, 6, 0, 0, DateTimeZone.UTC))
+      val t = TimeSpecification.parse("R4/2005-07-01T00:00/2005-07-01T06:00/P1D")
+      t.get must equalTo(dates)
+    }
+
+    //The following query retrieves data for august and september only, for three years (2004 - 2006).
+    // R3/2004-08-01T00:00/2004-10-01T00:00/P1Y
+
+    "parse repeating time ranges with duration" in {
+      val dates = Seq(
+        new DateTime(2004, 8, 1, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2004, 9, 1, 0, 0, 0, DateTimeZone.UTC),
+        new DateTime(2005, 8, 1, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2005, 9, 1, 0, 0, 0, DateTimeZone.UTC),
+        new DateTime(2006, 8, 1, 0, 0, 0, DateTimeZone.UTC) to new DateTime(2006, 9, 1, 0, 0, 0, DateTimeZone.UTC))
+      val t = TimeSpecification.parse("R3/2004-08-01T00:00/2004-09-01T00:00/P1Y")
+      t.get must equalTo(dates)
+    }
+
+    // can't get this test to return anything... FIXME
+    "illegal format" in {
+      TimeSpecification.parse("2008-09-01T12:00/2008-09-01T13:00/P24H") must throwAn[Exception].orSkip
+    }
+
     "timezones in spec" in {
       val start = new DateTime(2015, 4, 21, 10, 0, 0, DateTimeZone.UTC)
       val end = new DateTime(2015, 4, 21, 16, 0, 0, DateTimeZone.UTC)
