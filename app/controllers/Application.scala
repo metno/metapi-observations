@@ -112,7 +112,7 @@ object ObservationsController extends Controller {
 
     DB.withConnection("kdvh") { implicit conn =>
       Try {
-        val sourceList = sources split "," map (_.trim().toInt)
+        val sourceList = SourceSpecification.parse(sources)
         val times = TimeSpecification.parse(reftime).get
         val parameterList = parameters split "," map (_ trim)
         val fieldList = fieldSet( fields )
