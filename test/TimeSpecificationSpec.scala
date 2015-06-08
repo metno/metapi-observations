@@ -102,9 +102,8 @@ class TimeSpecificationSpec extends Specification {
       t.get must equalTo(dates)
     }
 
-    // can't get this test to return anything... FIXME
     "illegal format" in {
-      TimeSpecification.parse("2008-09-01T12:00/2008-09-01T13:00/P24H") must throwAn[Exception].orSkip
+      TimeSpecification.parse("2008-09-01T12:00/2008-09-01T13:00/P24H") must beFailedTry
     }
 
     "timezones in spec" in {
