@@ -108,14 +108,14 @@ object ObservationsController extends Controller {
     @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
       defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
 
-   val start = DateTime.now(DateTimeZone.UTC)
+    val start = DateTime.now(DateTimeZone.UTC)
 
     DB.withConnection("kdvh") { implicit conn =>
       Try {
         val sourceList = SourceSpecification.parse(sources)
         val times = TimeSpecification.parse(reftime).get
         val parameterList = parameters split "," map (_ trim)
-        val fieldList = fieldSet( fields )
+        val fieldList = fieldSet(fields)
         val kdvh = new KdvhDatabaseAccess(conn)
         val obsAccess = new KdvhObservationAccess(kdvh)
         obsAccess.observations(sourceList, times, parameterList, fieldList)
@@ -124,10 +124,9 @@ object ObservationsController extends Controller {
           if (data isEmpty) {
             NotFound("No data found")
           } else {
-            val header = CsvFormat header data(0)
             format.toLowerCase() match {
-              case "csv" => Ok(data.foldLeft(header)(_ + '\n' + CsvFormat.format(_)))
-              case "jsonld" => Ok(JsonFormat.format(start, data))
+              case "csv" => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
+              case "jsonld" => Ok(JsonFormat.format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
               case x => BadRequest(s"Invalid output format: $x")
             }
           }
