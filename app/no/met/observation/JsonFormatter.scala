@@ -49,7 +49,7 @@ private case class Helper(common: CommonResult, observations: Traversable[Observ
 /**
  * Creating a json representation of observation data
  */
-object JsonFormat {
+class JsonFormatter(fields: Set[Field]) {
   import MetaData._
 
   private val dateTimeZFormatter = new DateTimeFormatterBuilder()
@@ -98,9 +98,15 @@ object JsonFormat {
 
   implicit val observedElementWrites: Writes[ObservedElement] = new Writes[ObservedElement] {
     def writes(observation: ObservedElement): JsObject = {
-      val vals = List("value" -> Json.toJson(observation.value),
-        "unit" -> Json.toJson(unit(observation.phenomenon)),
-        "qualityCode" -> Json.toJson(observation.quality))
+
+      val wanted = Set(Field.value, Field.unit, Field.qualityCode)
+      val vals = fields filter (wanted contains _) map {
+        _ match {
+          case Field.value => "value" -> Json.toJson(observation.value)
+          case Field.unit => "unit" -> Json.toJson(unit(observation.phenomenon))
+          case Field.qualityCode => "qualityCode" -> Json.toJson(observation.quality)
+        }
+      } toList
 
       Json.obj(
         observation.phenomenon -> JsObject(
@@ -121,9 +127,27 @@ object JsonFormat {
     }
 
   implicit val observationWrites: Writes[Observation] = new Writes[Observation] {
-    def writes(observation: Observation): JsObject = Json.obj(
-      "reftime" -> observation.time,
-      "values" -> observation.data)
+    def writes(observation: Observation): JsObject = {
+
+      var elements = List.empty[(String, JsValue)]
+      if (fields.contains(Field.value) || fields.contains(Field.unit) || fields.contains(Field.qualityCode)) {
+        elements = "values" -> Json.toJson(observation.data) :: elements
+      }
+      if (fields contains Field.reftime) {
+        elements = "reftime" -> Json.toJson(observation.time) :: elements
+      }
+
+      new JsObject(elements)
+
+      //      if (fields contains Field.reftime) {
+      //        Json.obj(
+      //          "reftime" -> observation.time,
+      //          "values" -> observation.data)
+      //      } else {
+      //        Json.obj(
+      //          "values" -> observation.data)
+      //      }
+    }
   }
 
   implicit val observationSeriesWrites: Writes[ObservationSeries] = new Writes[ObservationSeries] {

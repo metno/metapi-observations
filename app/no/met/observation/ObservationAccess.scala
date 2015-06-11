@@ -31,9 +31,9 @@ import scala.util._
 
 object Field extends Enumeration {
   type Field = Value
-  val value, quality = Value
+  val reftime, value, unit, qualityCode = Value
 
-  val default = Set(value, quality)
+  val default = Set(reftime, value, unit, qualityCode)
 }
 
 /**

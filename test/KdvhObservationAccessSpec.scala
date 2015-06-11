@@ -59,7 +59,7 @@ class KdvhObservationAccessSpec extends Specification with Mockito {
       val data = dataSource observations (List(180),
         TimeSpecification.parse("2015-02-05T06:00:00Z").get,
         List("precipitation_amount", "air_temperature"),
-        Set(Field.value, Field.quality))
+        Set(Field.value, Field.qualityCode))
 
       data.size must equalTo(1)
       data(0) must equalTo(Observation.series(180, instant, List("precipitation_amount" -> (x, None), "air_temperature" -> (y, None))))
@@ -82,7 +82,7 @@ class KdvhObservationAccessSpec extends Specification with Mockito {
       val data = dataSource observations (List(180),
         TimeSpecification.parse("2015-02-01T06:00:00Z/2015-02-05T06:00:00Z").get,
         List("min_air_temperature", "max_air_temperature"),
-        Set(Field.value, Field.quality))
+        Set(Field.value, Field.qualityCode))
 
       val expectedData = List(
         ObservedElement("min_air_temperature", Some(x), None),

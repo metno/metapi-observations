@@ -38,36 +38,101 @@ class JsonFormatSpec extends Specification {
   val station = 180
   val time = DateTime.parse("2015-02-01T06:00:00Z")
   val start = DateTime.now
+
+  def doc(fields: Set[Field.Field] = Field.default): JsValue = {
+    val data = Observation.series(station, time, Map("air_temperature" -> (2, Some("70000"))))
+    val output = new JsonFormatter(fields).format(start, List(data))
+    Json.parse(output)
+  }
+
+  class Doc(fields: Set[Field.Field] = Field.default) {
+    val json = doc(fields)
+    val dataCollection = (json \ "data")(0)
+    val obsData = (dataCollection \ "dataSet")(0)
+    val valueList = (obsData \ "values")(0)
+    val temperature = valueList \ "air_temperature"
+  }
+
   "json formatter" should {
 
     "create some output" in {
 
-      val data = Observation.series(station, time, Map("air_temperature" -> (2, Some("70000"))))
-      val output = JsonFormat.format(start, List(data))
+      val document = new Doc()
+      import document._
 
-      val json = Json.parse(output)
+      (json \\ "data").size must equalTo(1)
 
-      (json \\"data").size must equalTo(1)
-      val dataCollection = (json \ "data")(0)
-
-      (dataCollection \ "@type") must equalTo( JsString("DataCollection"))
-      (dataCollection \ "source") must equalTo( JsString("KS180") )
-      (dataCollection \ "level") must equalTo( JsString("ground_level") )
-      (dataCollection \ "geometry" \ "type") must equalTo( JsString("Point") )
-      (dataCollection \ "geometry" \ "coordinates") must equalTo(JsArray(Seq( JsNumber(9.0), JsNumber(62.3))))
-
-      val obsData = (dataCollection \ "dataSet")(0)
+      (dataCollection \ "@type") must equalTo(JsString("DataCollection"))
+      (dataCollection \ "source") must equalTo(JsString("KS180"))
+      (dataCollection \ "level") must equalTo(JsString("ground_level"))
+      (dataCollection \ "geometry" \ "type") must equalTo(JsString("Point"))
+      (dataCollection \ "geometry" \ "coordinates") must equalTo(JsArray(Seq(JsNumber(9.0), JsNumber(62.3))))
 
       (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
-
-      val values = (obsData \ "values")(0)
-      val temperature = values \ "air_temperature"
 
       temperature \ "value" must equalTo(JsNumber(2))
       temperature \ "qualityCode" must equalTo(JsString("70000"))
       temperature \ "unit" must equalTo(JsString("celsius"))
     }
 
-  }
+    "disable display of referencetime" in {
+      val document = new Doc(Set(Field.value, Field.unit, Field.qualityCode))
+      import document._
 
+      (obsData \ "reftime") must haveClass[JsUndefined]
+      temperature \ "value" must equalTo(JsNumber(2))
+      temperature \ "qualityCode" must equalTo(JsString("70000"))
+      temperature \ "unit" must equalTo(JsString("celsius"))
+    }
+
+    "disable display of value" in {
+      val document = new Doc(Set(Field.reftime, Field.unit, Field.qualityCode))
+      import document._
+
+      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
+      temperature \ "value" must haveClass[JsUndefined]
+      temperature \ "qualityCode" must equalTo(JsString("70000"))
+      temperature \ "unit" must equalTo(JsString("celsius"))
+    }
+
+    "disable display of unit" in {
+      val document = new Doc(Set(Field.reftime, Field.value, Field.qualityCode))
+      import document._
+
+      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
+      temperature \ "value" must equalTo(JsNumber(2))
+      temperature \ "qualityCode" must equalTo(JsString("70000"))
+      temperature \ "unit" must haveClass[JsUndefined]
+    }
+
+    "disable display of quality" in {
+      val document = new Doc(Set(Field.reftime, Field.value, Field.unit))
+      import document._
+
+      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
+      temperature \ "value" must equalTo(JsNumber(2))
+      temperature \ "qualityCode" must haveClass[JsUndefined]
+      temperature \ "unit" must equalTo(JsString("celsius"))
+    }
+
+    "disable display of everything but reftime" in {
+      val document = new Doc(Set(Field.reftime))
+      import document._
+
+      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
+      valueList must haveClass[JsUndefined]
+      temperature must haveClass[JsUndefined]
+    }
+
+    "disable display of everything but quality and reftime" in {
+      val document = new Doc(Set(Field.qualityCode, Field.reftime))
+      import document._
+
+      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
+      temperature \ "value" must haveClass[JsUndefined]
+      temperature \ "qualityCode" must equalTo(JsString("70000"))
+      temperature \ "unit" must haveClass[JsUndefined]
+    }
+
+  }
 }
