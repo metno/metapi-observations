@@ -36,16 +36,16 @@ import play.api.Logger
  */
 class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
 
-  private val translator = new ParameterTranslator
+  private val translator = new ElementTranslator
 
   /**
    * Get observation data from a single source
    */
-  private def observations(source: Int, reftime: TimeSpecification.Range, parameters: Seq[String], fields: Set[Field.Value]): Seq[Observation] = {
+  private def observations(source: Int, reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field.Value]): Seq[Observation] = {
 
-    val kdvhParameters: Seq[String] = parameters map (translator.kdvhName(_))
+    val kdvhElements: Seq[String] = elements map (translator.kdvhName(_))
 
-    val databaseResult = kdvh.getData(source, reftime, kdvhParameters, fields.contains(Field.qualityCode))
+    val databaseResult = kdvh.getData(source, reftime, kdvhElements, fields.contains(Field.qualityCode))
 
     // If you run a test, and get a NullPointerException, it is because you
     // have made an error when setting up KdvhAccess mocking object, so the
@@ -54,7 +54,7 @@ class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
       (r: KdvhQueryResult) =>
         {
           val time = DateTime.parse(r.date)
-          val data = r.parameter.map { (v) =>
+          val data = r.element.map { (v) =>
             ObservedElement(translator.fromKdvhName(v._1), v._2.value, v._2.quality)
           }
           Observation(time, data)
@@ -62,7 +62,7 @@ class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
     }
   }
 
-  override def observations(sources: Seq[Int], reftime: TimeSpecification.Range, parameters: Seq[String], fields: Set[Field.Value]): Seq[ObservationSeries] = {
-    sources.map((source) => ObservationSeries(source, observations(source, reftime, parameters, fields)))
+  override def observations(sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field.Value]): Seq[ObservationSeries] = {
+    sources.map((source) => ObservationSeries(source, observations(source, reftime, elements, fields)))
   }
 }

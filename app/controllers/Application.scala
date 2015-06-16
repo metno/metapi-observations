@@ -50,17 +50,17 @@ object ObservationsController extends Controller {
    * @param stationId station number in database
    * @param fromTime Earliest time to get data for, inclusive
    * @param toTime Latest time to getdata for, exclusive
-   * @param parameters comma-separated string of parameters to search for
+   * @param elements comma-separated string of elements to search for
    */
-  def kdvhLookup(stationId: Int, fromTime: String, toTime: String, parameters: String) = Action { // scalastyle:ignore public.methods.have.type
+  def kdvhLookup(stationId: Int, fromTime: String, toTime: String, elements: String) = Action { // scalastyle:ignore public.methods.have.type
 
     val start = DateTime.parse(fromTime)
     val end = DateTime.parse(toTime)
-    val parameterList = parameters.split(",")
+    val elementList = elements.split(",")
 
     DB.withConnection("kdvh") { implicit conn =>
       val kdhv = new KdvhDatabaseAccess(conn)
-      val data = kdhv.getData(stationId, List(start to end), parameterList, false)
+      val data = kdhv.getData(stationId, List(start to end), elementList, false)
       if (data.isEmpty) {
         NotFound("Found no data for station " + stationId)
       } else {
@@ -88,7 +88,7 @@ object ObservationsController extends Controller {
    *
    * @param sources location specifications for wanted data, comma-separated
    * @param reftime time specifications
-   * @param parameters Parameter names
+   * @param elements Element names
    */
   @ApiOperation(
     nickname = "observations",
@@ -101,7 +101,7 @@ object ObservationsController extends Controller {
   def observations( // scalastyle:ignore public.methods.have.type
     @ApiParam(value = "Data source, comma separated", required = true)@QueryParam("sources") sources: String,
     @ApiParam(value = "Time range to get data for", required = true)@QueryParam("reftime") reftime: String,
-    @ApiParam(value = "Phenomena to access", required = true)@QueryParam("parameters") parameters: String,
+    @ApiParam(value = "Phenomena to access", required = true)@QueryParam("elements") elements: String,
     @ApiParam(value = "Fields to access", required = false, allowableValues = "value,unit,qualityCode")@QueryParam("fields") fields: Option[String],
     @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
       defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
@@ -113,11 +113,11 @@ object ObservationsController extends Controller {
       Try {
         val sourceList = SourceSpecification.parse(sources)
         val times = TimeSpecification.parse(reftime).get
-        val parameterList = parameters split "," map (_ trim)
+        val elementList = elements split "," map (_ trim)
         fieldList = fieldSet(fields)
         val kdvh = new KdvhDatabaseAccess(conn)
         val obsAccess = new KdvhObservationAccess(kdvh)
-        obsAccess.observations(sourceList, times, parameterList, fieldList)
+        obsAccess.observations(sourceList, times, elementList, fieldList)
       } match {
         case Success(data) =>
           if (data isEmpty) {

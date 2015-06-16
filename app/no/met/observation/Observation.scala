@@ -29,7 +29,7 @@ import com.github.nscala_time.time.Imports.DateTime
 import scala.collection._
 
 /**
- * Parametername/value pair
+ * Elementname/value pair
  */
 case class ObservedElement(phenomenon: String, value: Option[Double], quality: Option[String]) {
   def empty: Boolean = { value == None && quality == None }

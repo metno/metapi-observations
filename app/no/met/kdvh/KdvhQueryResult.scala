@@ -35,18 +35,18 @@ case class ObservedData(value: Option[Double], quality: Option[String] = None)
  * Result of a "standard" query to kdvh database.
  */
 case class KdvhQueryResult(val stationId: BigDecimal, val date: String,
-  val parameter: Map[String, ObservedData]) {
+  val element: Map[String, ObservedData]) {
 
   def header: String = {
     //$COVERAGE-OFF$Throw-away code
-    val parameterNames = parameter map (_._1) reduce (_ + "\t" + _)
-    "Station\tTime\t\t\t\t" + parameterNames
+    val elementNames = element map (_._1) reduce (_ + "\t" + _)
+    "Station\tTime\t\t\t\t" + elementNames
     // $COVERAGE-ON$
   }
 
   /**
-   * Create a copy of this object, with parameters from both this and the
-   * given result. If both objects contain the same parameter, the one from
+   * Create a copy of this object, with elements from both this and the
+   * given result. If both objects contain the same element, the one from
    * this is preferred.
    *
    * @param other Object to merge with
@@ -57,12 +57,12 @@ case class KdvhQueryResult(val stationId: BigDecimal, val date: String,
     if (!matches(other)) {
       throw new IllegalArgumentException("Nonmatching stations in merge")
     }
-    KdvhQueryResult(stationId, date, other.parameter ++ parameter)
+    KdvhQueryResult(stationId, date, other.element ++ element)
   }
 
   /**
    * Check if objects represent a observations at the same time and place, but
-   * not necessarily parameters or source.
+   * not necessarily elements or source.
    *
    * @param other Object to compare against
    * @return true if objects have same stationId and date, otherwise false
@@ -81,7 +81,7 @@ case class KdvhQueryResult(val stationId: BigDecimal, val date: String,
   override def toString: String = {
     //$COVERAGE-OFF$Throw-away code
     var ret = s"$stationId\t$date:\t"
-    for (p <- parameter) {
+    for (p <- element) {
       p._2.value match {
         case Some(v) => ret += v.toString
         case None => ;
@@ -96,19 +96,19 @@ case class KdvhQueryResult(val stationId: BigDecimal, val date: String,
 object KdvhQueryResult {
 
   /**
-   * Construct from the result of a query for at least stnr, data and the given parameters
+   * Construct from the result of a query for at least stnr, data and the given elements
    *
    * @param row The database result row to read
-   * @param parameters Parameter names to extract
+   * @param elements Element names to extract
    */
-  def apply(row: Row, parameters: Seq[String]): KdvhQueryResult = {
+  def apply(row: Row, elements: Seq[String]): KdvhQueryResult = {
     //$COVERAGE-OFF$Not testing database queries
 
     val r = row.asMap
 
     val stnr = row[java.math.BigDecimal]("stnr")
     val obstime = row[String]("obstime")
-    val data = parameters.foldLeft(Map.empty[String, ObservedData]) {
+    val data = elements.foldLeft(Map.empty[String, ObservedData]) {
       (m, v) =>
 
         val value = row[Option[Double]](v)

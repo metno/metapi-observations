@@ -32,11 +32,11 @@ import no.met.kdvh._
 
 
 @RunWith(classOf[JUnitRunner])
-class ParameterTranslatorSpec extends Specification {
+class ElementTranslatorSpec extends Specification {
 
-  val translator = new ParameterTranslator
+  val translator = new ElementTranslator
 
-  "Parameter translator" should {
+  "Element translator" should {
 
     "return translated data" in {
       translator kdvhName "air_temperature" must equalTo("TA")
@@ -46,11 +46,11 @@ class ParameterTranslatorSpec extends Specification {
       translator fromKdvhName "TA" must equalTo("air_temperature")
     }
 
-    "throw exception on translation of unknown parameter" in {
-      translator kdvhName "no_such_parameter" must throwA[Exception]
+    "throw exception on translation of unknown element" in {
+      translator kdvhName "no_such_element" must throwA[Exception]
     }
 
-    "throw exception on reverse translation of unknown parameter" in {
+    "throw exception on reverse translation of unknown element" in {
       translator fromKdvhName "NOTHING" must throwA[Exception]
     }
 

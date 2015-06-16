@@ -27,7 +27,7 @@ package no.met.observation
 
 sealed trait GeomType {
   /**
-   * Return the geometry as an WKT string. ex POINT( 9 62 )
+   * Return the geometry as a WKT string. ex POINT( 9 62 )
    */
   def asWkt:String
 }
@@ -44,6 +44,6 @@ case class Geometry( geom: GeomType )
 
 
 trait Metadata {
-  def parameterUnit( parameter: String ): Option[String]
+  def elementUnit( element: String ): Option[String]
   def sourceCoordinate( source: String): Option[Geometry]
 }

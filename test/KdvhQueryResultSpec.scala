@@ -62,49 +62,49 @@ class KdvhQueryResultSpec extends Specification {
       true
     }
 
-    "collate parameter from both sets when merging" in {
+    "collate element from both sets when merging" in {
       val a = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(2.1))))
       val b = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("TA" -> ObservedData(Some(18.3))))
       val c = a mergedWith b
-      c.parameter must havePairs("RR_12" -> ObservedData(Some(2.1)), "TA" -> ObservedData(Some(18.3)))
+      c.element must havePairs("RR_12" -> ObservedData(Some(2.1)), "TA" -> ObservedData(Some(18.3)))
     }
 
-    "prefer first argument when merging and parameters are conflicting" in {
+    "prefer first argument when merging and elements are conflicting" in {
       val a = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(2.1))))
       val b = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(3.2))))
       val c = a mergedWith b
-      c.parameter must havePair("RR_12" -> ObservedData(Some(2.1)))
+      c.element must havePair("RR_12" -> ObservedData(Some(2.1)))
     }
 
-    "perserve quality information when merging" in {
+    "preserve quality information when merging" in {
       val a = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(2.1), Some("70000"))))
       val b = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("TA" -> ObservedData(Some(18.3), Some("99900"))))
       val c = a mergedWith b
-      c.parameter must havePairs("RR_12" -> ObservedData(Some(2.1), Some("70000")), "TA" -> ObservedData(Some(18.3), Some("99900")))
+      c.element must havePairs("RR_12" -> ObservedData(Some(2.1), Some("70000")), "TA" -> ObservedData(Some(18.3), Some("99900")))
     }
 
-    "prefer first argument when merging and parameters are conflicting" in {
+    "prefer first argument when merging and elements are conflicting" in {
       val a = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(2.1), Some("123456"))))
       val b = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(3.2), Some("654321"))))
       val c = a mergedWith b
-      c.parameter must havePair("RR_12" -> ObservedData(Some(2.1), Some("123456")))
+      c.element must havePair("RR_12" -> ObservedData(Some(2.1), Some("123456")))
     }
 
-    "prefer first argument when merging and parameters are conflicting" in {
+    "prefer first argument when merging and elements are conflicting" in {
       val a = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(2.1), Some("123456"))))
       val b = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(3.2), Some("654321"))))
       val c = b mergedWith a // Turned around
-      c.parameter must havePair("RR_12" -> ObservedData(Some(3.2), Some("654321")))
+      c.element must havePair("RR_12" -> ObservedData(Some(3.2), Some("654321")))
     }
 
     // Unsure of this one - it means data sets may be mixed if a station
     // reports in one type RR_12 every hour, but only every 12 hours in the
     // preferred type:
-    //    "prefer second parameter value when first is None" in {
+    //    "prefer second element value when first is None" in {
     //      val a = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> None))
     //      val b = new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(3.2))))
     //      val c = a mergedWith b
-    //      c(0).parameter must havePair("RR_12" -> ObservedData(Some(3.2)))
+    //      c(0).element must havePair("RR_12" -> ObservedData(Some(3.2)))
     //    }
 
     "two merged lists must not contain date duplicates" in {
@@ -136,7 +136,7 @@ class KdvhQueryResultSpec extends Specification {
         new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(3)))),
         new KdvhQueryResult(180, "2015-02-27T06:00:00Z", Map("RR_12" -> ObservedData(Some(4)))))
       val c = KdvhQueryResult.merge(a, b)
-      c(0).parameter must havePair("RR_12" -> ObservedData(Some(1)))
+      c(0).element must havePair("RR_12" -> ObservedData(Some(1)))
     }
     "prefer first values when merging lists" in {
       val a = List(
@@ -146,7 +146,7 @@ class KdvhQueryResultSpec extends Specification {
         new KdvhQueryResult(180, "2015-02-26T06:00:00Z", Map("RR_12" -> ObservedData(Some(3)))),
         new KdvhQueryResult(180, "2015-02-27T06:00:00Z", Map("RR_12" -> ObservedData(Some(4)))))
       val c = KdvhQueryResult.merge(a, b)
-      c(1).parameter must havePair("RR_12" -> ObservedData(Some(2)))
+      c(1).element must havePair("RR_12" -> ObservedData(Some(2)))
     }
   }
 

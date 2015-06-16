@@ -48,10 +48,10 @@ trait ObservationAccess {
    *
    * @param sources Locations to get data for
    * @param reftime Specification of what times to get data for
-   * @param parameters Names of parameters to get data for
+   * @param elements Names of elements to get data for
    *
    * @return The found observations, matching the request
    */
   @throws[Exception]("in case something went wrong")
-  def observations(sources: Seq[Int], reftime: TimeSpecification.Range, parameters: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
+  def observations(sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
 }

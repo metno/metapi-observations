@@ -3,7 +3,7 @@
 # ~~~~
 
 # MET API
-GET     /v0.:format                 controllers.ObservationsController.observations(sources: String, reftime: String, parameters: String, fields: Option[String], format: String)
+GET     /v0.:format                 controllers.ObservationsController.observations(sources: String, reftime: String, elements: String, fields: Option[String], format: String)
 
 GET     /api-docs                   controllers.ApiHelpController.getResource(path = "/observations")
 
@@ -11,4 +11,4 @@ GET     /api-docs                   controllers.ApiHelpController.getResource(pa
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
 
 # KDVH lookup
-GET     /kdvh/:stationId            controllers.ObservationsController.kdvhLookup(stationId: Int, from: String, to: String, parameters: String)
+GET     /kdvh/:stationId            controllers.ObservationsController.kdvhLookup(stationId: Int, from: String, to: String, elements: String)

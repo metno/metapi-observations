@@ -37,31 +37,31 @@ trait KdvhAccess {
    *
    * @param stationId id of station to query
    * @param obstime time range we want data for from is inclusive, to is exclusive
-   * @param parameters list of kdvh parameter names
+   * @param elements list of kdvh element names
    * @param connection database connection object
    *
    * @return A sequence of KdvhQueryResult objects, containing the requested data
    */
-  def getData(stationId: Int, obstime: Seq[Interval], parameters: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult]
+  def getData(stationId: Int, obstime: Seq[Interval], elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult]
 }
 
 object KdvhAccess {
 
-  private def sanitize(parameter: String) {
+  private def sanitize(element: String) {
 
-    val param = "^[a-zA-Z0-9_]+$".r
-    parameter match {
-      case param(_*) => ;
-      case _ => throw new Exception("Invalid parameter specification: " + parameter)
+    val elem = "^[a-zA-Z0-9_]+$".r
+    element match {
+      case elem(_*) => ;
+      case _ => throw new Exception("Invalid element specification: " + element)
     }
 
   }
 
   @tailrec
-  def sanitize(parameters: Traversable[String]) {
-    if (parameters != Nil) {
-      sanitize(parameters head)
-      sanitize(parameters tail)
+  def sanitize(elements: Traversable[String]) {
+    if (elements != Nil) {
+      sanitize(elements head)
+      sanitize(elements tail)
     }
   }
 

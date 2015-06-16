@@ -39,7 +39,8 @@ import com.github.nscala_time.time.Imports._
  */
 class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
 
-  private def queryWithoutQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], parameters: Seq[String]): String = {
+  private def queryWithoutQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], elements: Seq[String]): String = {
+    // ### @param elements not used in this function!
 
     val param = tableParameters map ("d." + _) reduce (_ + ", " + _)
 
@@ -58,7 +59,8 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
           |d.stnr, d.dato, d.typeid""".stripMargin
   }
 
-  private def queryWithQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], parameters: Seq[String]): String = {
+  private def queryWithQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], elements: Seq[String]): String = {
+    // ### @param elements not used in this function!
 
     val param = tableParameters map (t => s"d.$t, q.$t as ${t}_flag") reduce (_ + ", " + _)
     val qualityTable = qualityTableFor(table)
@@ -82,20 +84,20 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
           |d.stnr, d.dato, d.typeid""".stripMargin
   }
 
-  override def getData(stationId: Int, obstime: Seq[Interval], parameters: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult] = {
+  override def getData(stationId: Int, obstime: Seq[Interval], elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult] = {
     var ret = List[KdvhQueryResult]()
 
-    if (!parameters.isEmpty) {
+    if (!elements.isEmpty) {
 
-      KdvhAccess.sanitize(parameters)
+      KdvhAccess.sanitize(elements)
 
-      val tables = observationTables(stationId, obstime, parameters)
+      val tables = observationTables(stationId, obstime, elements)
 
       for ((table, tableParameters) <- tables) {
 
         val query = withQuality match {
-          case true => queryWithQuality(table, tableParameters, stationId, obstime, parameters)
-          case false => queryWithoutQuality(table, tableParameters, stationId, obstime, parameters)
+          case true => queryWithQuality(table, tableParameters, stationId, obstime, elements)
+          case false => queryWithoutQuality(table, tableParameters, stationId, obstime, elements)
         }
         val result = SQL(query)()(connection)
         val results = result map (KdvhQueryResult(_, tableParameters))
@@ -115,16 +117,16 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
    *
    * @param stationId id of station to query
    * @param obstime time range we want data for from is inclusive, to is exclusive
-   * @param parameters list of kdvh parameter names
+   * @param elements list of kdvh element names
    * @param connection database connection object
    *
-   * @return A map containing table name -> List[parameter name] entries,
+   * @return A map containing table name -> List[element name] entries,
    *          signifying what tables contain which ones of the requested
-   *          parameters.
+   *          elements.
    */
-  private def observationTables(stationId: Int, obstime: TimeSpecification.Range, parameters: Traversable[String]): Map[String, Seq[String]] = {
+  private def observationTables(stationId: Int, obstime: TimeSpecification.Range, elements: Traversable[String]): Map[String, Seq[String]] = {
 
-    val param = parameters reduce (_ + "', '" + _)
+    val elem = elements reduce (_ + "', '" + _)
     val query = s"""
       |SELECT
         |distinct table_name, elem_code
@@ -132,7 +134,7 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
         |t_elem_obs
       |WHERE
         |stnr={stnr} AND
-        |elem_code IN ('$param') AND
+        |elem_code IN ('$elem') AND
         |fdato <= TO_DATE({start}, '$dateFormat') AND
         |(tdato IS NULL OR tdato >= TO_DATE({end}, '$dateFormat'))""".stripMargin
     val result = SQL(query).on(

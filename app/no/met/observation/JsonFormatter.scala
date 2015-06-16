@@ -32,7 +32,7 @@ import org.joda.time.format.{ DateTimeFormatter, DateTimeFormatterBuilder }
 
 object MetaData {
   val metadata = new Metadata {
-    def parameterUnit(parameter: String): Option[String] = parameter match {
+    def elementUnit(element: String): Option[String] = element match {
       case v if v.contains("temperature") => Some("celsius")
       case v if v.contains("precipitation") => Some("mm")
       case _ => None
@@ -40,7 +40,7 @@ object MetaData {
     def sourceCoordinate(source: String): Option[Geometry] =
       Some(Geometry(Point(9.0, 62.3)))
   }
-  val unit = metadata.parameterUnit _
+  val unit = metadata.elementUnit _
   val geometry = metadata.sourceCoordinate _
 }
 

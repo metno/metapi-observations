@@ -26,10 +26,10 @@
 package no.met.kdvh
 
 /**
- * Translating application interface parameter names into kdvh parameter
+ * Translating application interface element names into kdvh element
  * names, and vice versa
  */
-class ParameterTranslator {
+class ElementTranslator {
 
   // These names are not fixed yet
   private val translations = Map(
@@ -40,26 +40,26 @@ class ParameterTranslator {
   private val reverseTranslations = translations map ((entry) => (entry._2, entry._1)) toMap
 
   /**
-   * Get a the kdvh parameter name corresponding to the given interface name.
+   * Get the kdvh element name corresponding to the given interface element name.
    *
-   * @return a kdvh parameter name
+   * @return a kdvh element name
    */
   @throws[Exception]("if no conversion is found")
-  def kdvhName(dataParameterName: String): String = {
-    val ret = translations get dataParameterName
-    ret getOrElse (throw new Exception("Invalid parameter name: " + dataParameterName))
+  def kdvhName(dataElementName: String): String = {
+    val ret = translations get dataElementName
+    ret getOrElse (throw new Exception("Invalid element name: " + dataElementName))
   }
 
   /**
-   * Get a the application's interface parameter name corresponding to the
-   * given kdvh parameter name.
+   * Get a the application's interface element name corresponding to the
+   * given kdvh element name.
    *
-   * @return a parameter name, as used by this application's interface
+   * @return an element name, as used by this application's interface
    */
   @throws[Exception]("if no conversion is found")
-  def fromKdvhName(kdvhParameter: String): String = {
-    val ret = reverseTranslations get kdvhParameter
-    ret getOrElse (throw new Exception("Invalid parameter name: " + kdvhParameter))
+  def fromKdvhName(kdvhElement: String): String = {
+    val ret = reverseTranslations get kdvhElement
+    ret getOrElse (throw new Exception("Invalid element name: " + kdvhElement))
   }
 
 }
