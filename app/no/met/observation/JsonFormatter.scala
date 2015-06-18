@@ -25,9 +25,12 @@
 
 package no.met.observation
 
+import play.api.mvc._
 import play.api.libs.json._
 import com.github.nscala_time.time.Imports.{ Duration, DateTime }
 import no.met.observation.Field._
+import no.met.data._
+import no.met.data.format.json._
 import org.joda.time.format.{ DateTimeFormatter, DateTimeFormatterBuilder }
 
 object MetaData {
@@ -44,39 +47,11 @@ object MetaData {
   val geometry = metadata.sourceCoordinate _
 }
 
-private case class Helper(common: CommonResult, observations: Traversable[ObservationSeries])
-
 /**
  * Creating a json representation of observation data
  */
-class JsonFormatter(fields: Set[Field]) {
+class JsonFormatter(fields: Set[Field]) extends BasicMetapiJsonFormat {
   import MetaData._
-
-  private val dateTimeZFormatter = new DateTimeFormatterBuilder()
-    .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
-    .appendTimeZoneOffset("Z", false, 2, 2)
-    .toFormatter()
-
-  def dateTimeWrites(pattern: String = ""): Writes[DateTime] = pattern match {
-    case s if !s.isEmpty() => dateTimeWrites(Some(new DateTimeFormatterBuilder()
-      .appendPattern(s)
-      .toFormatter()))
-    case _ => dateTimeWrites(Some(dateTimeZFormatter))
-  }
-
-  def dateTimeWrites(formatter: Option[DateTimeFormatter]): Writes[DateTime] = new Writes[DateTime] {
-    def writes(dt: DateTime): JsValue = formatter match {
-      case Some(f) => JsString(f.print(dt))
-      case None => JsString(dateTimeZFormatter.print(dt))
-    }
-  }
-
-  def durationWrites: Writes[Duration] = new Writes[Duration] {
-    def writes(d: Duration): JsValue = JsNumber(d.getMillis.toDouble / 1000)
-  }
-
-  implicit val dateWrite = dateTimeWrites(Some(dateTimeZFormatter))
-  implicit val durationWrite = durationWrites
 
   implicit val pointWrite: Writes[Point] = new Writes[Point] {
     def writes(point: Point): JsValue = {
@@ -136,17 +111,7 @@ class JsonFormatter(fields: Set[Field]) {
       if (fields contains Field.reftime) {
         elements = "reftime" -> Json.toJson(observation.time) :: elements
       }
-
       new JsObject(elements)
-
-      //      if (fields contains Field.reftime) {
-      //        Json.obj(
-      //          "reftime" -> observation.time,
-      //          "values" -> observation.data)
-      //      } else {
-      //        Json.obj(
-      //          "values" -> observation.data)
-      //      }
     }
   }
 
@@ -159,21 +124,10 @@ class JsonFormatter(fields: Set[Field]) {
       "dataSet" -> observation.observations)
   }
 
-  private implicit val helperWrites: Writes[Helper] = new Writes[Helper] {
-    def writes(h: Helper): JsObject = Json.obj(
-      "@context" -> h.common.apiCommon.context,
-      "@type" -> "Response",
-      "apiVersion" -> h.common.apiCommon.apiVersion,
-      "license" -> h.common.apiCommon.license,
-      "created" -> h.common.created,
-      "queryTime" -> h.common.duration,
-      "startOffset" -> h.common.startOffset,
-      "currentItemCount" -> h.common.currentItemCount,
-      "itemsPerPage" -> h.common.itemsPerPage,
-      "totalItemCount" -> h.common.totalItemCount,
-      "nextLink" -> h.common.nextLink,
-      "prevLink" -> h.common.prevLink,
-      "data" -> h.observations)
+  implicit val responseDataWrites: Writes[ResponseData] = new Writes[ResponseData] {
+    def writes(response: ResponseData): JsObject = {
+      header(response.header) + ("data", Json.toJson(response.data))
+    }
   }
 
   private def dataSize(observations: Traversable[ObservationSeries]): Long =
@@ -192,11 +146,12 @@ class JsonFormatter(fields: Set[Field]) {
    * @param observations The list to create a represenetation of.
    * @return json representation, as a string
    */
-  def format(start: DateTime, observations: Traversable[ObservationSeries]): String = {
+  def format[A](start: DateTime, observations: Traversable[ObservationSeries])(implicit request: Request[A]): String = {
     val size = dataSize(observations)
     val duration = new Duration(DateTime.now.getMillis() - start.getMillis())
-    val helper = Helper(CommonResult(start, duration, 0, size, size, size, None, None), observations)
-    val repr = Json.toJson(helper)
-    Json.prettyPrint(repr)
+    val header = BasicResponseData("Response", "Observations", "v0", duration, size, size, size, 0, None, None)
+
+    val response = ResponseData(header, observations)
+    Json.prettyPrint(Json.toJson(response))
   }
 }

@@ -28,6 +28,9 @@ package test
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
+import play.api.test._
+import play.api.Play.current
+import play.api.test.Helpers._
 import no.met.observation._
 import com.github.nscala_time.time.Imports._
 import play.api.libs.json._
@@ -40,6 +43,7 @@ class JsonFormatSpec extends Specification {
   val start = DateTime.now
 
   def doc(fields: Set[Field.Field] = Field.default): JsValue = {
+    implicit val request = FakeRequest("GET", "test")
     val data = Observation.series(station, time, Map("air_temperature" -> (2, Some("70000"))))
     val output = new JsonFormatter(fields).format(start, List(data))
     Json.parse(output)
@@ -55,7 +59,7 @@ class JsonFormatSpec extends Specification {
 
   "json formatter" should {
 
-    "create some output" in {
+    "create some output" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
 
       val document = new Doc()
       import document._
@@ -75,7 +79,7 @@ class JsonFormatSpec extends Specification {
       temperature \ "unit" must equalTo(JsString("celsius"))
     }
 
-    "disable display of referencetime" in {
+    "disable display of referencetime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.value, Field.unit, Field.qualityCode))
       import document._
 
@@ -85,7 +89,7 @@ class JsonFormatSpec extends Specification {
       temperature \ "unit" must equalTo(JsString("celsius"))
     }
 
-    "disable display of value" in {
+    "disable display of value" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime, Field.unit, Field.qualityCode))
       import document._
 
@@ -95,7 +99,7 @@ class JsonFormatSpec extends Specification {
       temperature \ "unit" must equalTo(JsString("celsius"))
     }
 
-    "disable display of unit" in {
+    "disable display of unit" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime, Field.value, Field.qualityCode))
       import document._
 
@@ -105,7 +109,7 @@ class JsonFormatSpec extends Specification {
       temperature \ "unit" must haveClass[JsUndefined]
     }
 
-    "disable display of quality" in {
+    "disable display of quality" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime, Field.value, Field.unit))
       import document._
 
@@ -115,7 +119,7 @@ class JsonFormatSpec extends Specification {
       temperature \ "unit" must equalTo(JsString("celsius"))
     }
 
-    "disable display of everything but reftime" in {
+    "disable display of everything but reftime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime))
       import document._
 
@@ -124,7 +128,7 @@ class JsonFormatSpec extends Specification {
       temperature must haveClass[JsUndefined]
     }
 
-    "disable display of everything but quality and reftime" in {
+    "disable display of everything but quality and reftime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.qualityCode, Field.reftime))
       import document._
 
@@ -132,6 +136,21 @@ class JsonFormatSpec extends Specification {
       temperature \ "value" must haveClass[JsUndefined]
       temperature \ "qualityCode" must equalTo(JsString("70000"))
       temperature \ "unit" must haveClass[JsUndefined]
+    }
+
+    "contain standard headers" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+      val document = new Doc()
+      import document._
+
+      (json \ "@context") must equalTo(JsString("https://data.met.no/schema/"))
+      (json \ "@type") must equalTo(JsString("Response"))
+      (json \ "@id") must equalTo(JsString("Observations"))
+      (json \ "apiVersion") must equalTo(JsString("v0"))
+      (json \ "license") must equalTo(JsString("http://met.no/English/Data_Policy_and_Data_Services/"))
+      //(json \ "createdAt")
+      //(json \ "queryTime")
+      (json \ "totalItemCount") must equalTo(JsNumber(1))
+      //(json \ "currentLink") must equalTo(JsString("http://localhost:9000/test")) // This is only valid if server name and stuff is left unconfigured
     }
 
   }

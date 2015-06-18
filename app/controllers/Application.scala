@@ -106,6 +106,8 @@ object ObservationsController extends Controller {
     @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
       defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
 
+    implicit request =>
+
     val start = DateTime.now(DateTimeZone.UTC)
 
     var fieldList = Set.empty[Field]
@@ -128,10 +130,10 @@ object ObservationsController extends Controller {
               case "jsonld" => Ok(new JsonFormatter(fieldList).format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
               case x => BadRequest(s"Invalid output format: $x")
             }
-          }
-        case Failure(x) => BadRequest(x getLocalizedMessage)
+		  }
+          case Failure(x) => BadRequest(x getLocalizedMessage)
+        }
       }
-    }
 
   }
 }

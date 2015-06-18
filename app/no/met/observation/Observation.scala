@@ -45,6 +45,11 @@ case class Observation(time: DateTime, data: Traversable[ObservedElement]) {}
  */
 case class ObservationSeries(source: Int, observations: Seq[Observation]) {}
 
+/**
+ * Complete response data set to send to clients
+ */
+case class ResponseData(header: no.met.data.BasicResponseData, data: Traversable[ObservationSeries])
+
 object Observation {
 
   /**
