@@ -30,13 +30,17 @@ import no.met.time._
 import no.met.kdvh._
 import com.github.nscala_time.time.Imports._
 import play.api.Logger
+import javax.inject.{ Singleton, Inject }
+import com.google.inject.{ Guice, AbstractModule }
+
 
 /**
  * Interface for retrieving observation data from the kdvh database
  */
-class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
+@Singleton
+class KdvhObservationAccess @Inject() (val kdvh: KdvhAccess, translator: ElementTranslator) extends ObservationAccess {
 
-  private val translator = new ElementTranslator
+  //val translator : ElementTranslator
 
   /**
    * Get observation data from a single source
