@@ -50,7 +50,7 @@ object MetaData {
 /**
  * Creating a json representation of observation data
  */
-class JsonFormatter(fields: Set[Field]) extends BasicMetapiJsonFormat {
+class JsonFormatter(fields: Set[Field]) extends BasicJsonFormat {
   import MetaData._
 
   implicit val pointWrite: Writes[Point] = new Writes[Point] {
