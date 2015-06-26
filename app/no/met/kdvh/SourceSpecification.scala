@@ -48,7 +48,8 @@ object SourceSpecification {
       val pattern = s"""$prefix(\\d+)""".r
       s match {
         case pattern(x) => x.toInt
-        case _          => throw new Exception(s"Invalid source name: $s (expected $prefix<int>)")
+        case _ => throw new no.met.data.BadRequestException(s"Invalid source name: $s (expected $prefix<int>)",
+          Some(s"Currently, all sources must have the prefix $prefix, like this: ${prefix}18700"))
       }
     }
 

@@ -47,7 +47,9 @@ class ElementTranslator {
   @throws[Exception]("if no conversion is found")
   def kdvhName(dataElementName: String): String = {
     val ret = translations get dataElementName
-    ret getOrElse (throw new Exception("Invalid element name: " + dataElementName))
+    ret getOrElse (throw new no.met.data.BadRequestException(
+      "Invalid element name: " + dataElementName,
+      Some(s"The name $dataElementName is not recognized as a valid element")))
   }
 
   /**

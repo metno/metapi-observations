@@ -34,6 +34,8 @@ import util._
 import com.wordnik.swagger.annotations._
 import com.github.nscala_time.time.Imports.DateTime
 import com.github.nscala_time.time.Imports._
+import no.met.data._
+import no.met.data.format.json._
 import no.met.kdvh._
 import no.met.observation._
 import no.met.observation.Field._
@@ -77,7 +79,11 @@ object ObservationsController extends Controller {
         try {
           Field withName f.trim()
         } catch {
-          case x: NoSuchElementException => throw new NoSuchElementException(s"$f is not a valid field")
+          case x: NoSuchElementException => {
+            val validNames = Field.names.reduce(_ + ", " + _)
+            throw new BadRequestException(s"$f is not a valid field",
+              Some(s"Valid fields are ($validNames)"))
+          }
         }
       } toSet
     }
@@ -108,33 +114,30 @@ object ObservationsController extends Controller {
 
     implicit request =>
 
-    val start = DateTime.now(DateTimeZone.UTC)
-
-    var fieldList = Set.empty[Field]
-    DB.withConnection("kdvh") { implicit conn =>
-      Try {
+      val start = DateTime.now(DateTimeZone.UTC)
+      DB.withConnection("kdvh") { implicit conn =>
         val sourceList = SourceSpecification.parse(sources)
-        val times = TimeSpecification.parse(reftime).get
+        val times = TimeSpecification.parse(reftime) match {
+          case Success(t) => t
+          case Failure(x) => throw new BadRequestException("Invalid time specification",
+            Some("Documentation for how to specify time can be found at data.met.no"))
+        }
         val elementList = elements split "," map (_ trim)
-        fieldList = fieldSet(fields)
+        val fieldList = fieldSet(fields)
         val kdvh = new KdvhDatabaseAccess(conn)
         val obsAccess = new KdvhObservationAccess(kdvh)
-        obsAccess.observations(sourceList, times, elementList, fieldList)
-      } match {
-        case Success(data) =>
-          if (data isEmpty) {
-            NotFound("No data found")
-          } else {
-            format.toLowerCase() match {
-              case "csv" => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
-              case "jsonld" => Ok(new JsonFormatter(fieldList).format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
-              case x => BadRequest(s"Invalid output format: $x")
-            }
-		  }
-          case Failure(x) => BadRequest(x getLocalizedMessage)
+        val data = obsAccess.observations(sourceList, times, elementList, fieldList)
+
+        if (data isEmpty) {
+          NotFound("No data found")
+        } else {
+          format.toLowerCase() match {
+            case "csv" => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
+            case "jsonld" => Ok(new JsonFormatter(fieldList).format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
+            case x => BadRequest(s"Invalid output format: $x")
+          }
         }
       }
-
   }
 }
 // $COVERAGE-ON$

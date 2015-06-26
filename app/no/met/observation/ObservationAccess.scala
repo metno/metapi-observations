@@ -33,6 +33,8 @@ object Field extends Enumeration {
   type Field = Value
   val reftime, value, unit, qualityCode = Value
 
+  val names = Seq("reftime", "value", "unit", "qualityCode")
+
   val default = Set(reftime, value, unit, qualityCode)
 }
 
