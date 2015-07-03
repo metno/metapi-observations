@@ -22,7 +22,6 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
     MA 02110-1301, USA
 */
-
 package controllers
 
 import play.api._
@@ -44,7 +43,7 @@ import no.met.time._
 // $COVERAGE-OFF$ To be tested later, when interface is more permanent
 
 @Api(value = "/observations", description = "Access data about observations of meteorological data")
-object ObservationsController extends Controller {
+class ObservationsController extends Controller {
 
   /**
    * Lookup data from kdvh.

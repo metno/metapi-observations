@@ -67,7 +67,8 @@ class JsonFormatter(fields: Set[Field]) extends BasicJsonFormat {
       case p: Point =>
         Json.obj("type" -> "Point",
           "coordinates" -> p)
-      case gt => JsUndefined("Invalid or unimplmented geometry type '" + gt.toString() + "'.")
+      case gt => JsNull
+      //Undefined("Invalid or unimplmented geometry type '" + gt.toString() + "'.")
     }
   }
 
@@ -111,9 +112,20 @@ class JsonFormatter(fields: Set[Field]) extends BasicJsonFormat {
       if (fields contains Field.reftime) {
         elements = "reftime" -> Json.toJson(observation.time) :: elements
       }
-      new JsObject(elements)
+      new JsObject(elements.toMap[String, JsValue])
     }
   }
+/*
+ *       var elements = List.empty[(String, JsValue)]
+      if (fields.contains(Field.value) || fields.contains(Field.unit) || fields.contains(Field.qualityCode)) {
+        elements = "values" -> Json.toJson(observation.data) :: elements
+      }
+      if (fields contains Field.reftime) {
+        elements = "reftime" -> Json.toJson(observation.time) :: elements
+      }
+      new JsObject(elements)
+ *
+ */
 
   implicit val observationSeriesWrites: Writes[ObservationSeries] = new Writes[ObservationSeries] {
     def writes(observation: ObservationSeries): JsObject = Json.obj(

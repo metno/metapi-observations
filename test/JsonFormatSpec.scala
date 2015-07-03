@@ -30,10 +30,10 @@ import org.specs2.runner._
 import org.junit.runner._
 import play.api.test._
 import play.api.Play.current
-import play.api.test.Helpers._
-import no.met.observation._
-import com.github.nscala_time.time.Imports._
 import play.api.libs.json._
+import play.api.test.Helpers._
+import com.github.nscala_time.time.Imports._
+import no.met.observation._
 
 @RunWith(classOf[JUnitRunner])
 class JsonFormatSpec extends Specification {
@@ -66,90 +66,90 @@ class JsonFormatSpec extends Specification {
 
       (json \\ "data").size must equalTo(1)
 
-      (dataCollection \ "@type") must equalTo(JsString("DataCollection"))
-      (dataCollection \ "source") must equalTo(JsString("KS180"))
-      (dataCollection \ "level") must equalTo(JsString("ground_level"))
-      (dataCollection \ "geometry" \ "type") must equalTo(JsString("Point"))
-      (dataCollection \ "geometry" \ "coordinates") must equalTo(JsArray(Seq(JsNumber(9.0), JsNumber(62.3))))
+      (dataCollection \ "@type").as[JsString] must equalTo(JsString("DataCollection"))
+      (dataCollection \ "source").as[JsString] must equalTo(JsString("KS180"))
+      (dataCollection \ "level").as[JsString] must equalTo(JsString("ground_level"))
+      (dataCollection \ "geometry" \ "type").as[JsString] must equalTo(JsString("Point"))
+      (dataCollection \ "geometry" \ "coordinates").as[JsValue] must equalTo(JsArray(Seq(JsNumber(9.0), JsNumber(62.3))))
 
-      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
+      (obsData \ "reftime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
 
-      temperature \ "value" must equalTo(JsNumber(2))
-      temperature \ "qualityCode" must equalTo(JsString("70000"))
-      temperature \ "unit" must equalTo(JsString("celsius"))
+      (temperature \ "value").as[JsNumber] must equalTo(JsNumber(2))
+      (temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
+      (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
     "disable display of referencetime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.value, Field.unit, Field.qualityCode))
       import document._
 
-      (obsData \ "reftime") must haveClass[JsUndefined]
-      temperature \ "value" must equalTo(JsNumber(2))
-      temperature \ "qualityCode" must equalTo(JsString("70000"))
-      temperature \ "unit" must equalTo(JsString("celsius"))
+      (obsData \ "reftime").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
+      (temperature \ "value").as[JsNumber] must equalTo(JsNumber(2))
+      (temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
+      (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
     "disable display of value" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime, Field.unit, Field.qualityCode))
       import document._
 
-      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
-      temperature \ "value" must haveClass[JsUndefined]
-      temperature \ "qualityCode" must equalTo(JsString("70000"))
-      temperature \ "unit" must equalTo(JsString("celsius"))
+      (obsData \ "reftime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      (temperature \ "value").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
+      (temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
+      (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
     "disable display of unit" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime, Field.value, Field.qualityCode))
       import document._
 
-      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
-      temperature \ "value" must equalTo(JsNumber(2))
-      temperature \ "qualityCode" must equalTo(JsString("70000"))
-      temperature \ "unit" must haveClass[JsUndefined]
+      (obsData \ "reftime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      (temperature \ "value").as[JsNumber] must equalTo(JsNumber(2))
+      (temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
+      (temperature \ "unit").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
     }
 
     "disable display of quality" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime, Field.value, Field.unit))
       import document._
 
-      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
-      temperature \ "value" must equalTo(JsNumber(2))
-      temperature \ "qualityCode" must haveClass[JsUndefined]
-      temperature \ "unit" must equalTo(JsString("celsius"))
+      (obsData \ "reftime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      (temperature \ "value").as[JsNumber] must equalTo(JsNumber(2))
+      (temperature \ "qualityCode").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
+      (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
     "disable display of everything but reftime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.reftime))
       import document._
 
-      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
-      valueList must haveClass[JsUndefined]
-      temperature must haveClass[JsUndefined]
+      (obsData \ "reftime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      (valueList).validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
+      (temperature).validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
     }
 
     "disable display of everything but quality and reftime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc(Set(Field.qualityCode, Field.reftime))
       import document._
 
-      (obsData \ "reftime") must equalTo(JsString("2015-02-01T06:00:00Z"))
-      temperature \ "value" must haveClass[JsUndefined]
-      temperature \ "qualityCode" must equalTo(JsString("70000"))
-      temperature \ "unit" must haveClass[JsUndefined]
+      (obsData \ "reftime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      (temperature \ "value").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
+      (temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
+      (temperature \ "unit").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
     }
 
     "contain standard headers" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
       val document = new Doc()
       import document._
 
-      (json \ "@context") must equalTo(JsString("https://data.met.no/schema/"))
-      (json \ "@type") must equalTo(JsString("Response"))
-      (json \ "@id") must equalTo(JsString("Observations"))
-      (json \ "apiVersion") must equalTo(JsString("v0"))
-      (json \ "license") must equalTo(JsString("http://met.no/English/Data_Policy_and_Data_Services/"))
+      (json \ "@context").as[JsString] must equalTo(JsString("https://data.met.no/schema/"))
+      (json \ "@type").as[JsString] must equalTo(JsString("Response"))
+      (json \ "@id").as[JsString] must equalTo(JsString("Observations"))
+      (json \ "apiVersion").as[JsString] must equalTo(JsString("v0"))
+      (json \ "license").as[JsString] must equalTo(JsString("http://met.no/English/Data_Policy_and_Data_Services/"))
       //(json \ "createdAt")
       //(json \ "queryTime")
-      (json \ "totalItemCount") must equalTo(JsNumber(1))
+      (json \ "totalItemCount").as[JsNumber] must equalTo(JsNumber(1))
       //(json \ "currentLink") must equalTo(JsString("http://localhost:9000/test")) // This is only valid if server name and stuff is left unconfigured
     }
 

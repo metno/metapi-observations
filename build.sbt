@@ -2,7 +2,7 @@ name := """observations"""
 
 organization := "no.met.data"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
 publishTo := {
   val nexus = "http://maven.met.no/"
@@ -16,44 +16,48 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
-scalacOptions += "-feature"
+PlayKeys.devSettings += ("play.http.router", "observations.Routes")
 
+
+// Test Settings
 javaOptions += "-Djunit.outdir=target/test-report"
 
 ScoverageSbtPlugin.ScoverageKeys.coverageHighlighting := true
 
-ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 80
+ScoverageSbtPlugin.ScoverageKeys.coverageMinimum := 95
 
 ScoverageSbtPlugin.ScoverageKeys.coverageFailOnMinimum := true
 
 ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := """
   <empty>;
-  util.HttpStatus;views.html.swaggerUi.*;
   value.ApiResponse;
   ReverseApplication;
   ReverseAssets;
-  Routes;
+  observations.Routes;
+  views.html;
 """
 
-scalacOptions += "-feature"
 
-scalacOptions += "-language:postfixOps"
-
-resolvers += "metno repo" at "http://maven.met.no/content/groups/public"
-
+// Dependencies
 libraryDependencies ++= Seq(
   jdbc,
-  anorm,
   cache,
- "com.wordnik" %% "swagger-play2" % "1.3.12",
- "com.wordnik" %% "swagger-play2-utils" % "1.3.12",
+  evolutions,
+  ws,
+ "com.typesafe.play" %% "anorm" % "2.4.0",
+ "pl.matisoft" %% "swagger-play24" % "1.4",
  "com.github.nscala-time" %% "nscala-time" % "2.0.0",
  "com.oracle" % "ojdbc14" % "10.2.0.1.0",
-  ws,
- "no.met" %% "metapi-util" % "0.1-SNAPSHOT",
- "no.met.data" %% "auth" % "0.1-SNAPSHOT"
+ "no.met.data" %% "util" % "0.2-SNAPSHOT",
+ "no.met.data" %% "auth" % "0.2-SNAPSHOT",
+  specs2 % Test
 )
 
-PlayKeys.devSettings += ("application.router", "observations.Routes")
+resolvers ++= Seq( "metno repo" at "http://maven.met.no/content/groups/public",
+                   "scalaz-bintray" at "http://dl.bintray.com/scalaz/releases" )
+
+// Play provides two styles of routers, one expects its actions to be injected, the
+// other, legacy style, accesses its actions statically.
+routesGenerator := InjectedRoutesGenerator
