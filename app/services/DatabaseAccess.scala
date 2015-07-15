@@ -23,33 +23,34 @@
     MA 02110-1301, USA
 */
 
-package no.met.kdvh
+package services
 
 import com.github.nscala_time.time.Imports._
 import scala.annotation.tailrec
+import no.met.kdvh.KdvhQueryResult
 
 /**
  * Access to a kdvh database - interface definition
  */
-trait KdvhAccess {
+abstract class DatabaseAccess {
   /**
    * Get data from the kdvh database.
    *
    * @param stationId id of station to query
-   * @param obstime time range we want data for from is inclusive, to is exclusive
+   * @param obstime time intervals to retrieve data for; inclusive-exclusive semantics (i.e. from <= t < to) applies to each interval
    * @param elements list of kdvh element names
-   * @param connection database connection object
+   * @param withQuality whether to include quality codes
    *
    * @return A sequence of KdvhQueryResult objects, containing the requested data
    */
   def getData(stationId: Int, obstime: Seq[Interval], elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult]
 }
 
-object KdvhAccess {
+object DatabaseAccess {
 
   private def sanitize(element: String) {
 
-    val elem = "^[a-zA-Z0-9_]+$".r
+    val elem = "^[A-Za-z0-9_]+$".r
     element match {
       case elem(_*) => ;
       case _ => throw new Exception("Invalid element specification: " + element)

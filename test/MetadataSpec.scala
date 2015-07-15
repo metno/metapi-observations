@@ -28,39 +28,14 @@ package test
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
-import no.met.kdvh.KdvhAccess
-
+import no.met.observation.Point
 
 @RunWith(classOf[JUnitRunner])
-class KdvhAccessSpec extends Specification {
+class MetadataSpec extends Specification {
 
-  "kdvh access object" should {
-    "accept valid table names" in {
-      KdvhAccess.sanitize(List("TA","TAN_12", "rr_24")) must not(throwA[Exception])
+  "Point object" should {
+    "return valid WKT" in {
+      new Point(54.5,10.2).toString mustEqual("POINT(54.5 10.2)")
     }
-    "throw Exception on invalid table name" in {
-      KdvhAccess.sanitize(List("\"")) must throwA[Exception]
-    }
-    "throw Exception on invalid table name" in {
-      KdvhAccess.sanitize(List("\'flf")) must throwA[Exception]
-    }
-    "throw Exception on invalid table name" in {
-      KdvhAccess.sanitize(List("a-v")) must throwA[Exception]
-    }
-    "throw Exception on invalid table name" in {
-      KdvhAccess.sanitize(List("a ")) must throwA[Exception]
-    }
-    "throw Exception on invalid table name" in {
-      KdvhAccess.sanitize(List("-ad")) must throwA[Exception]
-    }
-    "throw Exception on invalid table name" in {
-      KdvhAccess.sanitize(List("RR 12")) must throwA[Exception]
-    }
-    "throw Exception on invalid table name" in {
-      KdvhAccess.sanitize(List(" TA")) must throwA[Exception]
-    }
-
   }
-
-
 }

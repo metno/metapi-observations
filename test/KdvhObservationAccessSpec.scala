@@ -31,65 +31,52 @@ import no.met.time._
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
-import org.specs2.mock._
 import com.github.nscala_time.time.Imports._
+import services.MockDatabaseAccess
+import services.MockElementTranslator
 
 // We are using tons of faked values for observations in this code. Turning off
 // some scalastyle checking, which will run wild with this code
 // scalastyle:off magic.number
 
 @RunWith(classOf[JUnitRunner])
-class KdvhObservationAccessSpec extends Specification with Mockito {
+class KdvhObservationAccessSpec extends Specification {
 
-  // sample values to use
-  private val x = 2.1
-  private val y = 5.7
+  private val dummyX = 2.1
+  private val dummyY = 5.7
+
+  private val kdvhDBAccess = new MockDatabaseAccess
+  private val kdvhElemTranslator = new MockElementTranslator
 
   "KdvhObservationAccess" should {
 
-    "retrieve data" in {
-      val instant = DateTime.parse("2015-02-05T06:00:00Z")
-      val time = Seq(instant to instant)
+    "retrieve from empty time interval" in {
+      val time = "2015-02-05T06:00:00Z"
 
-      val kdvh = mock[KdvhAccess]
-      kdvh.getData(180, time, List("RR_24", "TA"), true) returns List(
-        KdvhQueryResult(180, "2015-02-05T06:00:00Z",
-          Map("RR_24" -> ObservedData(Some(x)), "TA" -> ObservedData(Some(y)))))
-      val dataSource = new KdvhObservationAccess(kdvh)
+      val dataSource = new KdvhObservationAccess(kdvhDBAccess, kdvhElemTranslator)
       val data = dataSource observations (List(180),
-        TimeSpecification.parse("2015-02-05T06:00:00Z").get,
+        TimeSpecification.parse(time).get,
         List("precipitation_amount", "air_temperature"),
         Set(Field.value, Field.qualityCode))
 
       data.size must equalTo(1)
-      data(0) must equalTo(Observation.series(180, instant, List("precipitation_amount" -> (x, None), "air_temperature" -> (y, None))))
+      data(0) must equalTo(Observation.series(180, DateTime.parse(time), List("precipitation_amount" -> (dummyX, None), "air_temperature" -> (dummyY, None))))
     }
 
-    "retrieve data series" in {
-      val start = DateTime.parse("2015-02-01T06:00:00Z")
-      val stop = DateTime.parse("2015-02-05T06:00:00Z")
-      val time = Seq(start to stop)
-
-      val kdvhList = List(
-        KdvhQueryResult(180, "2015-02-01T06:00:00Z", Map("TAN" -> ObservedData(Some(x)), "TAX" -> ObservedData(Some(y)))),
-        KdvhQueryResult(180, "2015-02-02T06:00:00Z", Map("TAN" -> ObservedData(Some(x)), "TAX" -> ObservedData(Some(y)))),
-        KdvhQueryResult(180, "2015-02-03T06:00:00Z", Map("TAN" -> ObservedData(Some(x)), "TAX" -> ObservedData(Some(y)))),
-        KdvhQueryResult(180, "2015-02-04T06:00:00Z", Map("TAN" -> ObservedData(Some(x)), "TAX" -> ObservedData(Some(y)))))
-      val kdvh = mock[KdvhAccess]
-      kdvh.getData(180, time, List("TAN", "TAX"), true) returns kdvhList
-
-      val dataSource = new KdvhObservationAccess(kdvh)
+    "retrieve from multiple time intervals" in {
+      val dataSource = new KdvhObservationAccess(kdvhDBAccess, kdvhElemTranslator)
       val data = dataSource observations (List(180),
-        TimeSpecification.parse("2015-02-01T06:00:00Z/2015-02-05T06:00:00Z").get,
-        List("min_air_temperature", "max_air_temperature"),
+        TimeSpecification.parse("R4/2015-02-01T06:00:00Z/2015-02-01T12:00:00Z/P1D").get, // four repetitions with one day repetition offset
+        List("precipitation_amount", "air_temperature"),
         Set(Field.value, Field.qualityCode))
 
       val expectedData = List(
-        ObservedElement("min_air_temperature", Some(x), None),
-        ObservedElement("max_air_temperature", Some(y), None))
+        ObservedElement("precipitation_amount", Some(dummyX), None),
+        ObservedElement("air_temperature", Some(dummyY), None))
 
       data.size must equalTo(1)
       val obs = data(0).observations
+      // expect four repetitions with one day repetition offset
       obs.size must equalTo(4)
       obs(0) must equalTo(Observation(DateTime.parse("2015-02-01T06:00:00Z"), expectedData))
       obs(1) must equalTo(Observation(DateTime.parse("2015-02-02T06:00:00Z"), expectedData))

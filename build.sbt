@@ -35,8 +35,7 @@ ScoverageSbtPlugin.ScoverageKeys.coverageExcludedPackages := """
   value.ApiResponse;
   ReverseApplication;
   ReverseAssets;
-  observations.Routes;
-  views.html;
+  observations.*;
 """
 
 

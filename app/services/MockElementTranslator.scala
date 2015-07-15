@@ -23,45 +23,35 @@
     MA 02110-1301, USA
 */
 
-package no.met.kdvh
+package services
+
+import javax.inject.Singleton
+import services._
+
+//$COVERAGE-OFF$Not testing database queries
 
 /**
- * Translating application interface element names into kdvh element
- * names, and vice versa
+ * Concrete implementation of KdvhElementTranslator class, used for development and testing.
  */
-class ElementTranslator {
-
+@Singleton
+class MockElementTranslator extends ElementTranslator {
   // These names are not fixed yet
   private val translations = Map(
     "precipitation_amount" -> "RR_24",
     "min_air_temperature" -> "TAN",
     "max_air_temperature" -> "TAX",
     "air_temperature" -> "TA")
-  private val reverseTranslations = translations map ((entry) => (entry._2, entry._1)) toMap
+  private val reverseTranslations = translations map ((entry) => (entry._2, entry._1))
 
-  /**
-   * Get the kdvh element name corresponding to the given interface element name.
-   *
-   * @return a kdvh element name
-   */
-  @throws[Exception]("if no conversion is found")
-  def kdvhName(dataElementName: String): String = {
-    val ret = translations get dataElementName
-    ret getOrElse (throw new no.met.data.BadRequestException(
-      "Invalid element name: " + dataElementName,
-      Some(s"The name $dataElementName is not recognized as a valid element")))
+  override def toKdvhElemName(apiElemName: String): String = {
+    val ret = translations get apiElemName
+    ret getOrElse (throw new Exception("Invalid API element name: " + apiElemName))
   }
 
-  /**
-   * Get a the application's interface element name corresponding to the
-   * given kdvh element name.
-   *
-   * @return an element name, as used by this application's interface
-   */
-  @throws[Exception]("if no conversion is found")
-  def fromKdvhName(kdvhElement: String): String = {
-    val ret = reverseTranslations get kdvhElement
-    ret getOrElse (throw new Exception("Invalid element name: " + kdvhElement))
+  override def toApiElemName(kdvhElemName: String): String = {
+    val ret = reverseTranslations get kdvhElemName
+    ret getOrElse (throw new Exception("Invalid KDVH element name: " + kdvhElemName))
   }
-
 }
+
+// $COVERAGE-ON$

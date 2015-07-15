@@ -155,7 +155,7 @@ class JsonFormatter(fields: Set[Field]) extends BasicJsonFormat {
   /**
    * Create json representation of the given list
    *
-   * @param observations The list to create a represenetation of.
+   * @param observations The list to create a representation of.
    * @return json representation, as a string
    */
   def format[A](start: DateTime, observations: Traversable[ObservationSeries])(implicit request: Request[A]): String = {

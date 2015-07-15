@@ -25,25 +25,24 @@
 package controllers
 
 import play.api._
-import play.api.Play.current
 import play.api.mvc._
-import play.api.db._
+import javax.inject.Inject
 import javax.ws.rs.{ QueryParam, PathParam }
 import util._
 import com.wordnik.swagger.annotations._
 import com.github.nscala_time.time.Imports.DateTime
 import com.github.nscala_time.time.Imports._
-import no.met.data._
-import no.met.data.format.json._
 import no.met.kdvh._
 import no.met.observation._
 import no.met.observation.Field._
 import no.met.time._
+import services.DatabaseAccess
+import services.ElementTranslator
 
 // $COVERAGE-OFF$ To be tested later, when interface is more permanent
 
 @Api(value = "/observations", description = "Access data about observations of meteorological data")
-class ObservationsController extends Controller {
+class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTranslator: ElementTranslator) extends Controller {
 
   /**
    * Lookup data from kdvh.
@@ -59,30 +58,23 @@ class ObservationsController extends Controller {
     val end = DateTime.parse(toTime)
     val elementList = elements.split(",")
 
-    DB.withConnection("kdvh") { implicit conn =>
-      val kdhv = new KdvhDatabaseAccess(conn)
-      val data = kdhv.getData(stationId, List(start to end), elementList, false)
-      if (data.isEmpty) {
-        NotFound("Found no data for station " + stationId)
-      } else {
-        Ok(data.foldLeft(data(0).header)(_ + "\n" + _.toString()))
-      }
+    val data = kdvhDBAccess.getData(stationId, List(start to end), elementList, false)
+    if (data.isEmpty) {
+      NotFound("No data found for station " + stationId)
+    } else {
+      Ok(data.foldLeft(data(0).header)(_ + "\n" + _.toString()))
     }
   }
 
   def fieldSet(fields: Option[String]): Set[Field] = fields match {
-    case None => Field.default
+    case None     => Field.default
     case Some("") => Field.default
     case Some(field) => {
       field split "," map { f =>
         try {
           Field withName f.trim()
         } catch {
-          case x: NoSuchElementException => {
-            val validNames = Field.names.reduce(_ + ", " + _)
-            throw new BadRequestException(s"$f is not a valid field",
-              Some(s"Valid fields are ($validNames)"))
-          }
+          case x: NoSuchElementException => throw new NoSuchElementException(s"$f is not a valid field")
         }
       } toSet
     }
@@ -107,36 +99,36 @@ class ObservationsController extends Controller {
     @ApiParam(value = "Data source, comma separated", required = true)@QueryParam("sources") sources: String,
     @ApiParam(value = "Time range to get data for", required = true)@QueryParam("reftime") reftime: String,
     @ApiParam(value = "Phenomena to access", required = true)@QueryParam("elements") elements: String,
-    @ApiParam(value = "Fields to access", required = false, allowableValues = "value,unit,qualityCode")@QueryParam("fields") fields: Option[String],
+    @ApiParam(value = "Fields to access", required = false, allowableValues = "value,unit,qualityCode")
+      @QueryParam("fields") fields: Option[String],
     @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
       defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
-
     implicit request =>
 
-      val start = DateTime.now(DateTimeZone.UTC)
-      DB.withConnection("kdvh") { implicit conn =>
-        val sourceList = SourceSpecification.parse(sources)
-        val times = TimeSpecification.parse(reftime) match {
-          case Success(t) => t
-          case Failure(x) => throw new BadRequestException("Invalid time specification",
-            Some("Documentation for how to specify time can be found at data.met.no"))
-        }
-        val elementList = elements split "," map (_ trim)
-        val fieldList = fieldSet(fields)
-        val kdvh = new KdvhDatabaseAccess(conn)
-        val obsAccess = new KdvhObservationAccess(kdvh)
-        val data = obsAccess.observations(sourceList, times, elementList, fieldList)
+    val start = DateTime.now(DateTimeZone.UTC)
 
+    var fieldList = Set.empty[Field]
+
+    Try {
+      val sourceList = SourceSpecification.parse(sources)
+      val times = TimeSpecification.parse(reftime).get
+      val elementList = elements split "," map (_ trim)
+      fieldList = fieldSet(fields)
+      val obsAccess = new KdvhObservationAccess(kdvhDBAccess, kdvhElemTranslator)
+      obsAccess.observations(sourceList, times, elementList, fieldList)
+    } match {
+      case Success(data) =>
         if (data isEmpty) {
           NotFound("No data found")
         } else {
           format.toLowerCase() match {
-            case "csv" => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
+            case "csv"    => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
             case "jsonld" => Ok(new JsonFormatter(fieldList).format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
-            case x => BadRequest(s"Invalid output format: $x")
+            case x        => BadRequest(s"Invalid output format: $x")
           }
         }
-      }
+      case Failure(x) => BadRequest(x getLocalizedMessage)
+    }
   }
 }
 // $COVERAGE-ON$

@@ -25,22 +25,33 @@
 
 package no.met.kdvh
 
+import javax.inject.Singleton
 import no.met.time._
-import anorm._
+import anorm.SQL
+import play.api.db._
+import play.api.Play.current
 import play.Logger
+import play.api.libs.ws._
+import scala.concurrent._
+import scala.util._
 import java.sql.Connection
 import com.github.nscala_time.time.Imports._
+import services._
+import anorm.NamedParameter.string
+import anorm.sqlToSimple
+import no.met.kdvh._
+import scala.annotation.tailrec
 
 //$COVERAGE-OFF$Not testing database queries
 
 /**
- * Concrete implementation of KdvhAccess class, connecting to a real kdvh
+ * Concrete implementation of KdvhDatabaseAccess class, connecting to a real kdvh
  * database.
  */
-class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
+@Singleton
+class KdvhDatabaseAccess extends DatabaseAccess {
 
-  private def queryWithoutQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], elements: Seq[String]): String = {
-    // ### @param elements not used in this function!
+  private def queryWithoutQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval]): String = {
 
     val param = tableParameters map ("d." + _) reduce (_ + ", " + _)
 
@@ -59,8 +70,7 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
           |d.stnr, d.dato, d.typeid""".stripMargin
   }
 
-  private def queryWithQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval], elements: Seq[String]): String = {
-    // ### @param elements not used in this function!
+  private def queryWithQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval]): String = {
 
     val param = tableParameters map (t => s"d.$t, q.$t as ${t}_flag") reduce (_ + ", " + _)
     val qualityTable = qualityTableFor(table)
@@ -85,30 +95,35 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
   }
 
   override def getData(stationId: Int, obstime: Seq[Interval], elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult] = {
+    Logger.debug("KdvhAccess.getData() ...")
+    Logger.debug("Elements: " + elements.mkString(", "))
     var ret = List[KdvhQueryResult]()
 
     if (!elements.isEmpty) {
 
-      KdvhAccess.sanitize(elements)
+      DatabaseAccess.sanitize(elements)
 
-      val tables = observationTables(stationId, obstime, elements)
+      DB.withConnection("kdvh") { implicit conn =>
 
-      for ((table, tableParameters) <- tables) {
+        val tables = observationTables(stationId, obstime, elements, conn)
 
-        val query = withQuality match {
-          case true => queryWithQuality(table, tableParameters, stationId, obstime, elements)
-          case false => queryWithoutQuality(table, tableParameters, stationId, obstime, elements)
+        for ((table, tableParameters) <- tables) {
+
+          val query = withQuality match {
+            case true  => queryWithQuality(table, tableParameters, stationId, obstime)
+            case false => queryWithoutQuality(table, tableParameters, stationId, obstime)
+          }
+          val result = SQL(query)()(conn)
+          val results = result map (KdvhQueryResult(_, tableParameters))
+          ret = KdvhQueryResult.merge(ret, results)
         }
-        val result = SQL(query)()(connection)
-        val results = result map (KdvhQueryResult(_, tableParameters))
-        ret = KdvhQueryResult.merge(ret, results)
       }
     }
     ret
   }
 
   /**
-   * Dateformat to use when communicating with oracle database
+   * Date format to use when communicating with oracle database
    */
   private val dateFormat = "YYYY-MM-DD\"T\"HH24:MI:SS.\"000Z\""
 
@@ -118,13 +133,13 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
    * @param stationId id of station to query
    * @param obstime time range we want data for from is inclusive, to is exclusive
    * @param elements list of kdvh element names
-   * @param connection database connection object
+   * @param conn database connection object
    *
    * @return A map containing table name -> List[element name] entries,
    *          signifying what tables contain which ones of the requested
    *          elements.
    */
-  private def observationTables(stationId: Int, obstime: TimeSpecification.Range, elements: Traversable[String]): Map[String, Seq[String]] = {
+  private def observationTables(stationId: Int, obstime: TimeSpecification.Range, elements: Traversable[String], conn: Connection): Map[String, Seq[String]] = {
 
     val elem = elements reduce (_ + "', '" + _)
     val query = s"""
@@ -140,7 +155,7 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
     val result = SQL(query).on(
       "stnr" -> stationId,
       "start" -> TimeSpecification.min(obstime).toString,
-      "end" -> TimeSpecification.max(obstime).toString)()(connection)
+      "end" -> TimeSpecification.max(obstime).toString)()(conn)
 
     val ret = collection.mutable.Map[String, List[String]]()
 
@@ -183,9 +198,8 @@ class KdvhDatabaseAccess(connection: Connection) extends KdvhAccess {
 
     dataTableName toLowerCase match {
       case tableExpression(t) => s"t_${t}flag";
-      case _ => throw new Exception("Unrecognized table name");
+      case _                  => throw new Exception("Unrecognized table name");
     }
-
   }
 }
 

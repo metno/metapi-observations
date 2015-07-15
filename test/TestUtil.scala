@@ -22,37 +22,25 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
     MA 02110-1301, USA
 */
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.inject.bind
+import play.api.Application
+import play.api.test.FakeApplication
+import controllers._
+import services._
+import modules.observations._
 
-package test
+object TestUtil {
 
-import org.specs2.mutable._
-import org.specs2.runner._
-import org.junit.runner._
-import no.met.kdvh._
-
-
-@RunWith(classOf[JUnitRunner])
-class ElementTranslatorSpec extends Specification {
-
-  val translator = new ElementTranslator
-
-  "Element translator" should {
-
-    "return translated data" in {
-      translator kdvhName "air_temperature" must equalTo("TA")
-    }
-
-    "do reverse translations" in {
-      translator fromKdvhName "TA" must equalTo("air_temperature")
-    }
-
-    "throw exception on translation of unknown element" in {
-      translator kdvhName "no_such_element" must throwA[Exception]
-    }
-
-    "throw exception on reverse translation of unknown element" in {
-      translator fromKdvhName "NOTHING" must throwA[Exception]
-    }
-
+  private def defaultConfig = {
+    Map(("play.http.router" -> "observations.Routes"),
+        ("play.application.loader" -> "modules.ObservationsApplicationLoader"),
+        ("auth.active" -> "false"))
   }
+
+  def app : Application = new GuiceApplicationBuilder()
+    .configure(defaultConfig)
+    .bindings(new ObservationsNonProdModule)
+    .build
+
 }

@@ -29,23 +29,22 @@ import java.util.Date
 import no.met.time._
 import no.met.kdvh._
 import com.github.nscala_time.time.Imports._
-import play.api.Logger
+import services.DatabaseAccess
+import services.ElementTranslator
 
 /**
  * Interface for retrieving observation data from the kdvh database
  */
-class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
-
-  private val translator = new ElementTranslator
+class KdvhObservationAccess(val kdvhDBAccess: DatabaseAccess, val kdvhElemTranslator: ElementTranslator) extends ObservationAccess {
 
   /**
    * Get observation data from a single source
    */
   private def observations(source: Int, reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field.Value]): Seq[Observation] = {
 
-    val kdvhElements: Seq[String] = elements map (translator.kdvhName(_))
+    val kdvhElements: Seq[String] = elements map (kdvhElemTranslator.toKdvhElemName(_))
 
-    val databaseResult = kdvh.getData(source, reftime, kdvhElements, fields.contains(Field.qualityCode))
+    val databaseResult = kdvhDBAccess.getData(source, reftime, kdvhElements, fields.contains(Field.qualityCode))
 
     // If you run a test, and get a NullPointerException, it is because you
     // have made an error when setting up KdvhAccess mocking object, so the
@@ -55,7 +54,7 @@ class KdvhObservationAccess(val kdvh: KdvhAccess) extends ObservationAccess {
         {
           val time = DateTime.parse(r.date)
           val data = r.element.map { (v) =>
-            ObservedElement(translator.fromKdvhName(v._1), v._2.value, v._2.quality)
+            ObservedElement(kdvhElemTranslator.toApiElemName(v._1), v._2.value, v._2.quality)
           }
           Observation(time, data)
         }
