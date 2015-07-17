@@ -32,10 +32,10 @@ abstract class ElementTranslator {
   /**
    * Translates an API element name to a KDVH element name.
    */
-  def toKdvhElemName(apiElemName: String): String
+  def toKdvhElemName(auth: Option[String], apiElemName: String): String
 
   /**
    * Translates a KDVH element name to an API element name.
    */
-  def toApiElemName(kdvhElemName: String): String
+  def toApiElemName(auth: Option[String], kdvhElemName: String): String
 }

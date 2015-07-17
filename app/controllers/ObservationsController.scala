@@ -110,12 +110,13 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
     var fieldList = Set.empty[Field]
 
     Try {
+      val auth = request.headers.get("Authorization")
       val sourceList = SourceSpecification.parse(sources)
       val times = TimeSpecification.parse(reftime).get
       val elementList = elements split "," map (_ trim)
       fieldList = fieldSet(fields)
       val obsAccess = new KdvhObservationAccess(kdvhDBAccess, kdvhElemTranslator)
-      obsAccess.observations(sourceList, times, elementList, fieldList)
+      obsAccess.observations(auth, sourceList, times, elementList, fieldList)
     } match {
       case Success(data) =>
         if (data isEmpty) {

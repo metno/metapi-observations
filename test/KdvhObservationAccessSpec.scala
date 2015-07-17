@@ -54,7 +54,7 @@ class KdvhObservationAccessSpec extends Specification {
       val time = "2015-02-05T06:00:00Z"
 
       val dataSource = new KdvhObservationAccess(kdvhDBAccess, kdvhElemTranslator)
-      val data = dataSource observations (List(180),
+      val data = dataSource observations (None, List(180),
         TimeSpecification.parse(time).get,
         List("precipitation_amount", "air_temperature"),
         Set(Field.value, Field.qualityCode))
@@ -65,7 +65,7 @@ class KdvhObservationAccessSpec extends Specification {
 
     "retrieve from multiple time intervals" in {
       val dataSource = new KdvhObservationAccess(kdvhDBAccess, kdvhElemTranslator)
-      val data = dataSource observations (List(180),
+      val data = dataSource observations (None, List(180),
         TimeSpecification.parse("R4/2015-02-01T06:00:00Z/2015-02-01T12:00:00Z/P1D").get, // four repetitions with one day repetition offset
         List("precipitation_amount", "air_temperature"),
         Set(Field.value, Field.qualityCode))

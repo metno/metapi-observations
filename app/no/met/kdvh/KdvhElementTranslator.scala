@@ -46,11 +46,12 @@ import play.api.Logger
 @Singleton
 class KdvhElementTranslator extends ElementTranslator {
 
-  override def toKdvhElemName(apiElemName: String): String = {
-
+  override def toKdvhElemName(auth: Option[String], apiElemName: String): String = {
+    // if auth is null, it is because authorization is off
+    val authStr = auth.getOrElse("Basic invalid-id")
     val baseUrl = current.configuration.getString("met.elements.baseUrl") getOrElse "https://data.met.no/elements/v0.jsonld"
     val request: WSRequest = WS.url(baseUrl)
-                               .withAuth("TestUser", "", WSAuthScheme.BASIC)
+                               .withHeaders("Authorization" -> authStr)
                                .withQueryString("id" -> apiElemName)
     val response: Future[WSResponse] = request.get()
 
@@ -62,10 +63,12 @@ class KdvhElementTranslator extends ElementTranslator {
 
   }
 
-  override def toApiElemName(kdvhElemName: String): String = {
-
+  override def toApiElemName(auth: Option[String], kdvhElemName: String): String = {
+    // if auth is null, it is because authorization is off
+    val authStr = auth.getOrElse("Basic invalid-id")
     val baseUrl = current.configuration.getString("met.elements.baseUrl") getOrElse "https://data.met.no/elements/v0.jsonld"
     val request: WSRequest = WS.url(baseUrl)
+                               .withHeaders("Authorization" -> authStr)
                                .withQueryString("code" -> kdvhElemName)
     val response: Future[WSResponse] = request.get()
 

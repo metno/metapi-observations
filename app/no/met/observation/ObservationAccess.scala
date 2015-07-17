@@ -55,5 +55,5 @@ trait ObservationAccess {
    * @return The found observations, matching the request
    */
   @throws[Exception]("in case something went wrong")
-  def observations(sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
+  def observations(auth:Option[String], sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
 }

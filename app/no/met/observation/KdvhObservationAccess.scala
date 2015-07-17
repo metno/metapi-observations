@@ -40,9 +40,10 @@ class KdvhObservationAccess(val kdvhDBAccess: DatabaseAccess, val kdvhElemTransl
   /**
    * Get observation data from a single source
    */
-  private def observations(source: Int, reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field.Value]): Seq[Observation] = {
+  private def observations(auth: Option[String], source: Int, reftime: TimeSpecification.Range,
+      elements: Seq[String], fields: Set[Field.Value]): Seq[Observation] = {
 
-    val kdvhElements: Seq[String] = elements map (kdvhElemTranslator.toKdvhElemName(_))
+    val kdvhElements: Seq[String] = elements map (kdvhElemTranslator.toKdvhElemName(auth, _))
 
     val databaseResult = kdvhDBAccess.getData(source, reftime, kdvhElements, fields.contains(Field.qualityCode))
 
@@ -54,14 +55,15 @@ class KdvhObservationAccess(val kdvhDBAccess: DatabaseAccess, val kdvhElemTransl
         {
           val time = DateTime.parse(r.date)
           val data = r.element.map { (v) =>
-            ObservedElement(kdvhElemTranslator.toApiElemName(v._1), v._2.value, v._2.quality)
+            ObservedElement(kdvhElemTranslator.toApiElemName(auth, v._1), v._2.value, v._2.quality)
           }
           Observation(time, data)
         }
     }
   }
 
-  override def observations(sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field.Value]): Seq[ObservationSeries] = {
-    sources.map((source) => ObservationSeries(source, observations(source, reftime, elements, fields)))
+  override def observations(auth: Option[String], sources: Seq[Int], reftime: TimeSpecification.Range,
+      elements: Seq[String], fields: Set[Field.Value]): Seq[ObservationSeries] = {
+    sources.map((source) => ObservationSeries(source, observations(auth, source, reftime, elements, fields)))
   }
 }

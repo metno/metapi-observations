@@ -39,19 +39,19 @@ class KdvhElementTranslatorSpec extends Specification {
   "kdvh elem translator non-prod instance" should {
 
     "return translated data" in {
-      kdvhElemTranslatorNonProd toKdvhElemName "air_temperature" must equalTo("TA")
+      kdvhElemTranslatorNonProd.toKdvhElemName(None, "air_temperature") must equalTo("TA")
     }
 
     "do reverse translations" in {
-      kdvhElemTranslatorNonProd toApiElemName "TA" must equalTo("air_temperature")
+      kdvhElemTranslatorNonProd.toApiElemName(None, "TA") must equalTo("air_temperature")
     }
 
     "throw exception on translation of unknown element" in {
-      kdvhElemTranslatorNonProd toKdvhElemName "no_such_element" must throwA[Exception]
+      kdvhElemTranslatorNonProd.toKdvhElemName(None, "no_such_element") must throwA[Exception]
     }
 
     "throw exception on reverse translation of unknown element" in {
-      kdvhElemTranslatorNonProd toApiElemName "NOTHING" must throwA[Exception]
+      kdvhElemTranslatorNonProd.toApiElemName(None, "NOTHING") must throwA[Exception]
     }
   }
 }
