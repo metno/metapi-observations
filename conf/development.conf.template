@@ -1,5 +1,9 @@
 mail.override.address =
-db.kdvh.url =
-db.kdvh.username =
+db.kdvh.driver = org.postgresql.Driver
+db.kdvh.url = "jdbc:postgresql://localhost:5432/postgres"
+db.kdvh.username = postgres
 db.kdvh.password =
 db.kdvh.logStatements = true
+
+# Switch off authorization
+auth.active = false
