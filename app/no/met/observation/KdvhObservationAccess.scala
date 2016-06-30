@@ -66,4 +66,5 @@ class KdvhObservationAccess(val kdvhDBAccess: DatabaseAccess, val kdvhElemTransl
       elements: Seq[String], fields: Set[Field.Value]): Seq[ObservationSeries] = {
     sources.map((source) => ObservationSeries(source, observations(auth, source, reftime, elements, fields)))
   }
+
 }

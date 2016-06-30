@@ -34,6 +34,7 @@ import com.github.nscala_time.time.Imports.DateTime
 import com.github.nscala_time.time.Imports._
 import no.met.kdvh._
 import no.met.observation._
+import no.met.observation.JsonTimeSeriesFormat
 import no.met.observation.Field._
 import no.met.time._
 import services.DatabaseAccess
@@ -131,5 +132,59 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
       case Failure(x) => BadRequest(x getLocalizedMessage)
     }
   }
+
+  /**
+   * Lookup timeseries metadata from kdvh, using data.met.no interface
+   *
+   * @param sources location specifications for wanted data, comma-separated
+   * @param reftime time specifications
+   * @param elements Element names
+   */
+  @ApiOperation(
+    nickname = "timeSeries",
+    value = "Find timeseries metadata by source and/or element",
+    response = classOf[String],
+    httpMethod = "GET")
+  @ApiResponses(Array(
+    new ApiResponse(code = 400, message = "An error in the request"), // scalastyle:ignore magic.number
+    new ApiResponse(code = 404, message = "No data was found"))) // scalastyle:ignore magic.number
+  def timeSeries( // scalastyle:ignore public.methods.have.type
+    @ApiParam(value = "Data source, comma separated", required = false)@QueryParam("sources") sources: Option[String],
+    @ApiParam(value = "Phenomena to access", required = false)@QueryParam("elements") elements: Option[String],
+    @ApiParam(value = "Fields to access", required = false)@QueryParam("fields") fields: Option[String],
+    @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
+      defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
+    implicit request =>
+
+    val start = DateTime.now(DateTimeZone.UTC)
+
+    var fieldList = Set.empty[Field]
+
+    Try {
+      val auth = request.headers.get("Authorization")
+      val sourceList : Seq[Int] = sources match {
+        case Some(sources) => SourceSpecification.parse(sources)
+        case _ => Seq()
+      }
+      val elementList : Seq[String] = elements match {
+        case Some(elements) => elements split "," map (_ trim)
+        case _ => Seq()
+      }
+      fieldList = fieldSet(fields)
+      kdvhDBAccess.getTimeSeries(sourceList, elementList)
+    } match {
+      case Success(data) =>
+        if (data isEmpty) {
+          NotFound("No data found")
+        } else {
+          format.toLowerCase() match {
+            case "jsonld" => Ok(JsonTimeSeriesFormat.format(start, data)) as "application/vnd.no.met.data.observations.timeseries-v0+json"
+            case x        => BadRequest(s"Invalid output format: $x")
+          }
+        }
+      case Failure(x) => BadRequest(x getLocalizedMessage)
+    }
+  }
+
 }
 // $COVERAGE-ON$

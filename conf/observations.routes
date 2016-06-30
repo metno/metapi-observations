@@ -5,6 +5,8 @@
 # MET API
 GET     /v0.:format                 controllers.ObservationsController.observations(sources: String, reftime: String, elements: String, fields: Option[String], format: String)
 
+GET     /timeSeries/v0.:format      controllers.ObservationsController.timeSeries(sources: Option[String], elements: Option[String], fields: Option[String], format: String)
+
 GET     /api-docs                   pl.matisoft.swagger.ApiHelpController.getResource(path = "/observations")
 
 # KDVH lookup

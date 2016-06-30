@@ -166,4 +166,5 @@ class JsonFormatter(fields: Set[Field]) extends BasicJsonFormat {
     val response = ResponseData(header, observations)
     Json.prettyPrint(Json.toJson(response))
   }
+  
 }

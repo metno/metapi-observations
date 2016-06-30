@@ -1,7 +1,7 @@
 /*
     MET-API
 
-    Copyright (C) 2014 met.no
+    Copyright (C) 2016 met.no
     Contact information:
     Norwegian Meteorological Institute
     Box 43 Blindern
@@ -25,36 +25,21 @@
 
 package no.met.observation
 
-import no.met.time._
-import java.util.Date
+import anorm.Row
+import play.Logger
 import scala.util._
 
-object Field extends Enumeration {
-  type Field = Value
-  val reftime, value, unit, qualityCode = Value
-
-  val names = Seq("reftime", "value", "unit", "qualityCode")
-
-  val default = Set(reftime, value, unit, qualityCode)
-}
+case class TimeSeries(
+  sourceId: Int,
+  sensorNumber: Int,
+  elementId: String,
+  fromDate: String,
+  toDate: Option[String],
+  observationTimespan: String,
+  timeOffset: String
+)
 
 /**
- * Interface for retrieving observation data from a data source
+ * Complete response data set to send to clients
  */
-trait ObservationAccess {
-
-  import Field._
-
-  /**
-   * Retrieve a set of observations
-   *
-   * @param sources Locations to get data for
-   * @param reftime Specification of what times to get data for
-   * @param elements Names of elements to get data for
-   *
-   * @return The found observations, matching the request
-   */
-  @throws[Exception]("in case something went wrong")
-  def observations(auth:Option[String], sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
-
-}
+case class TimeSeriesResponseData(header: no.met.data.BasicResponseData, data: Traversable[TimeSeries])

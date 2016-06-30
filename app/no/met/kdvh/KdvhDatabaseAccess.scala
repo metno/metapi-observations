@@ -40,6 +40,7 @@ import services._
 import anorm.NamedParameter.string
 import anorm.sqlToSimple
 import no.met.kdvh._
+import no.met.observation._
 import scala.annotation.tailrec
 
 //$COVERAGE-OFF$Not testing database queries
@@ -121,7 +122,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     }
     ret
   }
-
+  
   /**
    * Date format to use when communicating with oracle database
    */
@@ -201,6 +202,58 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       case _                  => throw new Exception("Unrecognized table name");
     }
   }
+
+  /**
+   * Retrieve time series data from KDVH/KDVH-proxy
+   */
+  override def getTimeSeries(stationIds: Seq[Int], elements: Seq[String]): List[TimeSeries] = {
+    Logger.debug("KdvhAccess.getTimeSeriesData() ...")
+    
+    DB.withConnection("kdvh") { implicit conn =>
+      var stationQ = "TRUE"
+      var elemQ = "TRUE"
+      if (!stationIds.isEmpty) {
+        val stnr = stationIds.mkString(",")
+        stationQ = s"""STNR IN ($stnr)"""
+      }
+      if (!elements.isEmpty) {
+        DatabaseAccess.sanitize(elements)
+        val elem = elements reduce (_ + "', '" + _)
+        elemQ = s"""ELEM_CODE IN ('$elem')"""
+      }     
+      val query = s"""
+          |SELECT
+            |STNR AS station,
+            |SENSOR_NR AS sensor_number,
+            |ELEM_CODE AS kdvh_element,
+            |TO_CHAR(FROMDATE, '$dateFormat') AS from_date,
+            |TO_CHAR(TODATE, '$dateFormat') AS to_date,
+            |COALESCE(OBSERVATION_TIMESPAN, 'T0H0M0S') AS observation_timespan,
+            |TIME_OFFSET AS time_offset
+          |FROM
+            |T_ELEM_MAP_TIMESERIES
+          |WHERE
+            |HAS_ACCESS = 1 AND
+            |$stationQ AND
+            |$elemQ
+          |ORDER BY
+            |station, kdvh_element, from_date""".stripMargin
+      Logger.debug(query)
+      val result = SQL(query)()(conn)
+      result.map ( row =>
+          TimeSeries(
+              row[Int]("station"),
+              row[Int]("sensor_number"),
+              row[String]("kdvh_element"),
+              row[String]("from_date"),
+              row[Option[String]]("to_date"),
+              row[String]("observation_timespan"),
+              row[String]("time_offset")
+          )
+      ).toList
+    }
+  }
+
 }
 
 // $COVERAGE-ON$

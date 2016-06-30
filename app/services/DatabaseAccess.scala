@@ -28,6 +28,7 @@ package services
 import com.github.nscala_time.time.Imports._
 import scala.annotation.tailrec
 import no.met.kdvh.KdvhQueryResult
+import no.met.observation.TimeSeries
 
 /**
  * Access to a kdvh database - interface definition
@@ -44,6 +45,15 @@ abstract class DatabaseAccess {
    * @return A sequence of KdvhQueryResult objects, containing the requested data
    */
   def getData(stationId: Int, obstime: Seq[Interval], elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult]
+  /**
+   * Get time series data from the kdvh database.
+   *
+   * @param stationId id of station to query
+   * @param elements list of kdvh element names
+   *
+   * @return A sequence of KdvhQueryResult objects, containing the requested data
+   */
+  def getTimeSeries(stationId: Seq[Int], elements: Seq[String]): Seq[TimeSeries]
 }
 
 object DatabaseAccess {
