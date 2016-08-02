@@ -23,7 +23,7 @@
     MA 02110-1301, USA
 */
 
-package services
+package services.observations
 
 import com.github.nscala_time.time.Imports._
 import scala.annotation.tailrec

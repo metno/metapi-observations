@@ -28,7 +28,7 @@ package test
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
-import services.DatabaseAccess
+import services.observations.DatabaseAccess
 
 @RunWith(classOf[JUnitRunner])
 class KdvhDatabaseAccessSpec extends Specification {

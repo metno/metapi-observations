@@ -23,7 +23,7 @@
     MA 02110-1301, USA
 */
 
-package no.met.kdvh
+package services.observations
 
 import javax.inject.Singleton
 import no.met.time._

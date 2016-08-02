@@ -23,10 +23,9 @@
     MA 02110-1301, USA
 */
 
-package services
+package services.observations
 
 import javax.inject.Singleton
-import services._
 
 //$COVERAGE-OFF$Not testing database queries
 

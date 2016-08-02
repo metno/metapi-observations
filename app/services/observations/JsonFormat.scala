@@ -23,15 +23,25 @@
     MA 02110-1301, USA
 */
 
-package no.met.observation
+package services.observations
 
 import play.api.mvc._
 import play.api.libs.json._
-import com.github.nscala_time.time.Imports.{ Duration, DateTime }
-import no.met.observation.Field._
+import play.api.libs.json.Json.toJsFieldJsValueWrapper
+import com.github.nscala_time.time.Imports.DateTime
+import com.github.nscala_time.time.Imports._
 import no.met.data._
 import no.met.data.format.json._
-import org.joda.time.format.{ DateTimeFormatter, DateTimeFormatterBuilder }
+import no.met.time._
+import no.met.observation.Field
+import no.met.observation.Field._
+import no.met.observation.Geometry
+import no.met.observation.Metadata
+import no.met.observation.Observation
+import no.met.observation.ObservationSeries
+import no.met.observation.ObservedElement
+import no.met.observation.Point
+import no.met.observation.ResponseData
 
 object MetaData {
   val metadata = new Metadata {
@@ -50,7 +60,7 @@ object MetaData {
 /**
  * Creating a json representation of observation data
  */
-class JsonFormatter(fields: Set[Field]) extends BasicJsonFormat {
+class JsonFormat(fields: Set[Field]) extends BasicJsonFormat {
   import MetaData._
 
   implicit val pointWrite: Writes[Point] = new Writes[Point] {

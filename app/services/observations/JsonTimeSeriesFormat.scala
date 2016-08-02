@@ -23,13 +23,16 @@
     MA 02110-1301, USA
 */
 
-package no.met.observation
+package services.observations
 
 import play.api.mvc._
 import play.api.libs.json._
 import com.github.nscala_time.time.Imports._
 import no.met.data.BasicResponseData
 import no.met.data.format.json.BasicJsonFormat
+import no.met.observation.TimeSeries
+import no.met.observation.TimeSeriesResponseData
+import play.api.libs.json.Json.toJsFieldJsValueWrapper
 
 /**
  * Creating a json representation of Stations data

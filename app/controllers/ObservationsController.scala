@@ -34,11 +34,10 @@ import com.github.nscala_time.time.Imports.DateTime
 import com.github.nscala_time.time.Imports._
 import no.met.kdvh._
 import no.met.observation._
-import no.met.observation.JsonTimeSeriesFormat
+import services.observations.JsonTimeSeriesFormat
 import no.met.observation.Field._
 import no.met.time._
-import services.DatabaseAccess
-import services.ElementTranslator
+import services.observations._
 
 // $COVERAGE-OFF$ To be tested later, when interface is more permanent
 
@@ -125,7 +124,7 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
         } else {
           format.toLowerCase() match {
             case "csv"    => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
-            case "jsonld" => Ok(new JsonFormatter(fieldList).format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
+            case "jsonld" => Ok(new JsonFormat(fieldList).format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
             case x        => BadRequest(s"Invalid output format: $x")
           }
         }

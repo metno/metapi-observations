@@ -23,12 +23,11 @@
     MA 02110-1301, USA
 */
 
-package services
+package services.observations
 
 import javax.inject.Singleton
 import com.github.nscala_time.time.Imports._
 import no.met.observation._
-import services._
 import no.met.kdvh.KdvhQueryResult
 import no.met.kdvh.ObservedData
 import scala.math.BigDecimal.int2bigDecimal

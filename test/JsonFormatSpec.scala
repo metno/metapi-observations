@@ -34,6 +34,7 @@ import play.api.libs.json._
 import play.api.test.Helpers._
 import com.github.nscala_time.time.Imports._
 import no.met.observation._
+import services.observations.JsonFormat
 
 @RunWith(classOf[JUnitRunner])
 class JsonFormatSpec extends Specification {
@@ -45,7 +46,7 @@ class JsonFormatSpec extends Specification {
   def doc(fields: Set[Field.Field] = Field.default): JsValue = {
     implicit val request = FakeRequest("GET", "test")
     val data = Observation.series(station, time, Map("air_temperature" -> (2, Some("70000"))))
-    val output = new JsonFormatter(fields).format(start, List(data))
+    val output = new JsonFormat(fields).format(start, List(data))
     Json.parse(output)
   }
 

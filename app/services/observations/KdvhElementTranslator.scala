@@ -23,7 +23,7 @@
     MA 02110-1301, USA
 */
 
-package no.met.kdvh
+package services.observations
 
 import javax.inject.Singleton
 import play.api.Play.current
@@ -33,7 +33,6 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import scala.util._
 import ExecutionContext.Implicits.global
-import services._
 
 import play.api.Logger
 

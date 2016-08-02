@@ -28,8 +28,8 @@ package test
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
-import services.MockElementTranslator
-import services.ElementTranslator
+import services.observations.MockElementTranslator
+import services.observations.ElementTranslator
 
 @RunWith(classOf[JUnitRunner])
 class KdvhElementTranslatorSpec extends Specification {

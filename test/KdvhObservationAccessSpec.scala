@@ -32,8 +32,8 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
 import com.github.nscala_time.time.Imports._
-import services.MockDatabaseAccess
-import services.MockElementTranslator
+import services.observations.MockDatabaseAccess
+import services.observations.MockElementTranslator
 
 // We are using tons of faked values for observations in this code. Turning off
 // some scalastyle checking, which will run wild with this code

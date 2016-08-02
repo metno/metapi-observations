@@ -26,16 +26,9 @@ package modules.observations
 
 import play.api._
 import play.api.inject.guice._
-import com.google.inject.AbstractModule
-import no.met.kdvh._
-import services.DatabaseAccess
-import services.MockDatabaseAccess
-import no.met.kdvh.KdvhDatabaseAccess
-import services.ElementTranslator
-import services.MockElementTranslator
-import no.met.kdvh.KdvhElementTranslator
 import play.api.inject.guice.GuiceableModule.fromGuiceModule
-import play.api.inject.guice._
+import com.google.inject.AbstractModule
+import services.observations._
 
 /**
  * Configurations for Production Mode

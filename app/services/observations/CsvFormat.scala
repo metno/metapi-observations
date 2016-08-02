@@ -23,19 +23,40 @@
     MA 02110-1301, USA
 */
 
-package services
+package services.observations
+
+import no.met.observation.Observation
+import no.met.observation.ObservationSeries
+import no.met.observation.ObservedElement
+
+//$COVERAGE-OFF$ Throw-away code
 
 /**
- * Interface for translating between kdvh and api element names
+ * Simple csv data formatting object for observation data
  */
-abstract class ElementTranslator {
-  /**
-   * Translates an API element name to a KDVH element name.
-   */
-  def toKdvhElemName(auth: Option[String], apiElemName: String): String
+object CsvFormat {
 
   /**
-   * Translates a KDVH element name to an API element name.
+   * Create a header, describing the given data
    */
-  def toApiElemName(auth: Option[String], kdvhElemName: String): String
+  def header(d: ObservationSeries): String = {
+
+    d.observations(0).data.foldLeft("# source,\ttime")(_ + ",\t" + _.phenomenon)
+  }
+
+  def format(e: ObservedElement): String = {
+    e.value.getOrElse("").toString()
+  }
+  def format(o: Observation): String = {
+    o.data.foldLeft(s"${o.time}")(_ + ",\t" + format(_))
+  }
+  def format(d: ObservationSeries): String = {
+    d.observations.foldLeft("")((x, y) => x + s"${d.source},\t${format(y)}\n")
+  }
+
+  def format(d: Seq[ObservationSeries]): String = {
+    d.foldLeft(header(d(0)) + "\n")(_ + _)
+  }
 }
+
+//$COVERAGE-ON$

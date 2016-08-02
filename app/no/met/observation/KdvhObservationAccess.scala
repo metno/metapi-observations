@@ -29,8 +29,7 @@ import java.util.Date
 import no.met.time._
 import no.met.kdvh._
 import com.github.nscala_time.time.Imports._
-import services.DatabaseAccess
-import services.ElementTranslator
+import services.observations._
 
 /**
  * Interface for retrieving observation data from the kdvh database
