@@ -39,12 +39,18 @@ class MockElementTranslator extends ElementTranslator {
     "precipitation_amount" -> "RR_24",
     "min_air_temperature" -> "TAN",
     "max_air_temperature" -> "TAX",
-    "air_temperature" -> "TA")
-  private val reverseTranslations = translations map ((entry) => (entry._2, entry._1))
+    "air_temperature" -> "TA,TA10")
+  private val reverseTranslations = Map(
+    "RR_24" -> "precipitation_amount",
+    "TAN" -> "min_air_temperature",
+    "TAX" -> "max_air_temperature",
+    "TA" -> "air_temperature",
+    "TA10" -> "air_temperature")
 
-  override def toKdvhElemName(auth:Option[String], apiElemName: String): String = {
-    val ret = translations get apiElemName
-    ret getOrElse (throw new Exception("Invalid API element name: " + apiElemName))
+  override def toKdvhElemName(auth:Option[String], apiElemName: String): Seq[String] = {
+    val tr = translations get apiElemName
+    val ret = tr getOrElse (throw new Exception("Invalid API element name: " + apiElemName))
+    ret split ","
   }
 
   override def toApiElemName(auth:Option[String], kdvhElemName: String): String = {

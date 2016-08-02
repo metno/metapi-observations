@@ -45,7 +45,7 @@ import play.api.Logger
 @Singleton
 class KdvhElementTranslator extends ElementTranslator {
 
-  override def toKdvhElemName(auth: Option[String], apiElemName: String): String = {
+  override def toKdvhElemName(auth: Option[String], apiElemName: String): Seq[String] = {
     // if auth is null, it is because authorization is off
     val authStr = auth.getOrElse("Basic invalid-id")
     val baseUrl = current.configuration.getString("met.elements.baseUrl") getOrElse "https://data.met.no/elements/v0.jsonld"
@@ -56,7 +56,7 @@ class KdvhElementTranslator extends ElementTranslator {
 
     val result = Await.result(response, 2 seconds)
     result.status match {
-      case OK => ((result.json \ "data")(0) \ "kdvhConvention" \ "code").get.as[String]
+      case OK => ((result.json \ "data")(0) \ "kdvhConvention" \ "code").get.as[String]  split ","
       case _  => throw new Exception("Failed to translate to KDVH element name: " + apiElemName)
     }
 

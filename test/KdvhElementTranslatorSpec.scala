@@ -38,10 +38,14 @@ class KdvhElementTranslatorSpec extends Specification {
 
   "kdvh elem translator non-prod instance" should {
 
-    "return translated data" in {
-      kdvhElemTranslatorNonProd.toKdvhElemName(None, "air_temperature") must equalTo("TA")
+    "return translated data for a single value" in {
+      kdvhElemTranslatorNonProd.toKdvhElemName(None, "precipitation_amount") must equalTo(Seq("RR_24"))
     }
 
+    "return translated data for a sequence value" in {
+      kdvhElemTranslatorNonProd.toKdvhElemName(None, "air_temperature") must equalTo(Seq("TA", "TA10"))
+    }
+    
     "do reverse translations" in {
       kdvhElemTranslatorNonProd.toApiElemName(None, "TA") must equalTo("air_temperature")
     }

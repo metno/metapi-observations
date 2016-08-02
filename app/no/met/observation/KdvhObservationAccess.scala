@@ -42,9 +42,9 @@ class KdvhObservationAccess(val kdvhDBAccess: DatabaseAccess, val kdvhElemTransl
   private def observations(auth: Option[String], source: Int, reftime: TimeSpecification.Range,
       elements: Seq[String], fields: Set[Field.Value]): Seq[Observation] = {
 
-    val kdvhElements: Seq[String] = elements map (kdvhElemTranslator.toKdvhElemName(auth, _))
+    val kdvhElements = elements map (kdvhElemTranslator.toKdvhElemName(auth, _))
 
-    val databaseResult = kdvhDBAccess.getData(source, reftime, kdvhElements, fields.contains(Field.qualityCode))
+    val databaseResult = kdvhDBAccess.getData(source, reftime, kdvhElements.flatten, fields.contains(Field.qualityCode))
 
     // If you run a test, and get a NullPointerException, it is because you
     // have made an error when setting up KdvhAccess mocking object, so the
