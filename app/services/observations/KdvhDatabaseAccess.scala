@@ -153,6 +153,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         |elem_code IN ('$elem') AND
         |fdato <= TO_DATE({start}, '$dateFormat') AND
         |(tdato IS NULL OR tdato >= TO_DATE({end}, '$dateFormat'))""".stripMargin
+
+    Logger.debug(query)
+        
     val result = SQL(query).on(
       "stnr" -> stationId,
       "start" -> TimeSpecification.min(obstime).toString,
