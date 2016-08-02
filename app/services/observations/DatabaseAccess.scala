@@ -60,7 +60,7 @@ object DatabaseAccess {
 
   private def sanitize(element: String) {
 
-    val elem = "^[A-Za-z0-9_]+$".r
+    val elem = "^[A-Za-z0-9_,]+$".r
     element match {
       case elem(_*) => ;
       case _ => throw new Exception("Invalid element specification: " + element)
