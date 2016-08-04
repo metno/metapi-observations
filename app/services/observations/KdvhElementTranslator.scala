@@ -31,6 +31,7 @@ import play.api.libs.ws._
 import play.api.http.Status._
 import scala.concurrent._
 import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util._
 import ExecutionContext.Implicits.global
 

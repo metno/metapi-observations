@@ -38,6 +38,10 @@ object TestUtil {
         ("auth.active" -> "false"))
   }
 
+  //      ("play.modules.disabled" -> ("play.modules.swagger.SwaggerModule")),
+  //      ("play.modules.enabled" -> "play.modules.swagger.SwaggerModule"),
+  
+  
   def app : Application = new GuiceApplicationBuilder()
     .configure(defaultConfig)
     .bindings(new ObservationsNonProdModule)

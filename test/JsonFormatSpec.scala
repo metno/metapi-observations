@@ -23,8 +23,6 @@
     MA 02110-1301, USA
 */
 
-package test
-
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.junit.runner._
@@ -35,6 +33,7 @@ import play.api.test.Helpers._
 import com.github.nscala_time.time.Imports._
 import no.met.observation._
 import services.observations.JsonFormat
+import TestUtil._
 
 @RunWith(classOf[JUnitRunner])
 class JsonFormatSpec extends Specification {
@@ -60,7 +59,8 @@ class JsonFormatSpec extends Specification {
 
   "json formatter" should {
 
-    "create some output" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "create some output" in new WithApplication(TestUtil.app) {
+    //running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
 
       val document = new Doc()
       import document._
@@ -80,7 +80,7 @@ class JsonFormatSpec extends Specification {
       (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
-    "disable display of referencetime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "disable display of referencetime" in new WithApplication(TestUtil.app)  {
       val document = new Doc(Set(Field.value, Field.unit, Field.qualityCode))
       import document._
 
@@ -90,7 +90,7 @@ class JsonFormatSpec extends Specification {
       (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
-    "disable display of value" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "disable display of value" in new WithApplication(TestUtil.app)  {
       val document = new Doc(Set(Field.reftime, Field.unit, Field.qualityCode))
       import document._
 
@@ -100,7 +100,7 @@ class JsonFormatSpec extends Specification {
       (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
-    "disable display of unit" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "disable display of unit" in new WithApplication(TestUtil.app)  {
       val document = new Doc(Set(Field.reftime, Field.value, Field.qualityCode))
       import document._
 
@@ -110,7 +110,7 @@ class JsonFormatSpec extends Specification {
       (temperature \ "unit").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
     }
 
-    "disable display of quality" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "disable display of quality" in new WithApplication(TestUtil.app)  {
       val document = new Doc(Set(Field.reftime, Field.value, Field.unit))
       import document._
 
@@ -120,7 +120,7 @@ class JsonFormatSpec extends Specification {
       (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
     }
 
-    "disable display of everything but reftime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "disable display of everything but reftime" in new WithApplication(TestUtil.app)  {
       val document = new Doc(Set(Field.reftime))
       import document._
 
@@ -129,7 +129,7 @@ class JsonFormatSpec extends Specification {
       (temperature).validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
     }
 
-    "disable display of everything but quality and reftime" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "disable display of everything but quality and reftime" in new WithApplication(TestUtil.app)  {
       val document = new Doc(Set(Field.qualityCode, Field.reftime))
       import document._
 
@@ -139,7 +139,7 @@ class JsonFormatSpec extends Specification {
       (temperature \ "unit").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
     }
 
-    "contain standard headers" in running(FakeApplication(additionalConfiguration = Helpers.inMemoryDatabase("kdvh"))) {
+    "contain standard headers" in new WithApplication(TestUtil.app)  {
       val document = new Doc()
       import document._
 

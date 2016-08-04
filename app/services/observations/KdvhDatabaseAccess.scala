@@ -25,23 +25,22 @@
 
 package services.observations
 
-import javax.inject.Singleton
-import no.met.time._
-import anorm.SQL
-import play.api.db._
 import play.api.Play.current
 import play.Logger
+import play.api.db._
 import play.api.libs.ws._
-import scala.concurrent._
-import scala.util._
-import java.sql.Connection
+import anorm._
 import com.github.nscala_time.time.Imports._
-import services._
-import anorm.NamedParameter.string
-import anorm.sqlToSimple
-import no.met.kdvh._
-import no.met.observation._
+import java.sql.Connection
+import javax.inject.Singleton
 import scala.annotation.tailrec
+import scala.concurrent._
+import scala.language.postfixOps
+import scala.util._
+import no.met.kdvh._
+import no.met.time._
+import no.met.observation._
+import services._
 
 //$COVERAGE-OFF$Not testing database queries
 

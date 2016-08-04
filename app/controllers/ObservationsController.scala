@@ -26,22 +26,23 @@ package controllers
 
 import play.api._
 import play.api.mvc._
-import javax.inject.Inject
-import javax.ws.rs.{ QueryParam, PathParam }
-import util._
-import com.wordnik.swagger.annotations._
-import com.github.nscala_time.time.Imports.DateTime
 import com.github.nscala_time.time.Imports._
+import com.github.nscala_time.time.Imports.DateTime
+import io.swagger.annotations._
+import javax.inject.Inject
+import scala.language.postfixOps
+import util._
+
 import no.met.kdvh._
 import no.met.observation._
-import services.observations.JsonTimeSeriesFormat
 import no.met.observation.Field._
 import no.met.time._
+import services.observations.JsonTimeSeriesFormat
 import services.observations._
 
 // $COVERAGE-OFF$ To be tested later, when interface is more permanent
 
-@Api(value = "/observations", description = "Access data about observations of meteorological data")
+@Api(value = "/observations", description = "Retrieve observation data")
 class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTranslator: ElementTranslator) extends Controller {
 
   /**
@@ -89,20 +90,19 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
    */
   @ApiOperation(
     nickname = "observations",
-    value = "Find data for a set of stations, and a time range",
+    value = "Retrieve observation data based on source (station ID) and/or reference (observation) time. Filter by element.",
     response = classOf[String],
     httpMethod = "GET")
   @ApiResponses(Array(
     new ApiResponse(code = 400, message = "An error in the request"), // scalastyle:ignore magic.number
     new ApiResponse(code = 404, message = "No data was found"))) // scalastyle:ignore magic.number
   def observations( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = "Data source, comma separated", required = true)@QueryParam("sources") sources: String,
-    @ApiParam(value = "Time range to get data for", required = true)@QueryParam("reftime") reftime: String,
-    @ApiParam(value = "Phenomena to access", required = true)@QueryParam("elements") elements: String,
-    @ApiParam(value = "Fields to access", required = false, allowableValues = "value,unit,qualityCode")
-      @QueryParam("fields") fields: Option[String],
+    @ApiParam(value = "Data source, comma separated", required = true) sources: String,
+    @ApiParam(value = "Time range to get data for", required = true) reftime: String,
+    @ApiParam(value = "Phenomena to access", required = true) elements: String,
+    @ApiParam(value = "Fields to access", required = false, allowableValues = "value,unit,qualityCode") fields: Option[String],
     @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
-      defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
+      defaultValue = "jsonld") format: String) = no.met.security.AuthorizedAction {
     implicit request =>
 
     val start = DateTime.now(DateTimeZone.UTC)
@@ -148,11 +148,11 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
     new ApiResponse(code = 400, message = "An error in the request"), // scalastyle:ignore magic.number
     new ApiResponse(code = 404, message = "No data was found"))) // scalastyle:ignore magic.number
   def timeSeries( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = "Data source, comma separated", required = false)@QueryParam("sources") sources: Option[String],
-    @ApiParam(value = "Phenomena to access", required = false)@QueryParam("elements") elements: Option[String],
-    @ApiParam(value = "Fields to access", required = false)@QueryParam("fields") fields: Option[String],
+    @ApiParam(value = "Data source, comma separated", required = false) sources: Option[String],
+    @ApiParam(value = "Phenomena to access", required = false) elements: Option[String],
+    @ApiParam(value = "Fields to access", required = false) fields: Option[String],
     @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
-      defaultValue = "jsonld")@PathParam("format") format: String) = no.met.security.AuthorizedAction {
+      defaultValue = "jsonld") format: String) = no.met.security.AuthorizedAction {
     implicit request =>
 
     val start = DateTime.now(DateTimeZone.UTC)

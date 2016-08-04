@@ -27,6 +27,7 @@ package services.observations
 
 import com.github.nscala_time.time.Imports._
 import scala.annotation.tailrec
+import scala.language.postfixOps
 import no.met.kdvh.KdvhQueryResult
 import no.met.observation.TimeSeries
 

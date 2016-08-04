@@ -1,6 +1,6 @@
 organization := "no.met.data"
 name := """observations"""
-version := "0.2-SNAPSHOT"
+version := "0.3-SNAPSHOT"
 description := "Observations module of the metapi."
 homepage :=  Some(url(s"https://github.com/metno"))
 licenses += "GPL-2.0" -> url("https://www.gnu.org/licenses/gpl-2.0.html")
@@ -24,10 +24,10 @@ libraryDependencies ++= Seq(
   ws,
  "com.typesafe.play" %% "anorm" % "2.4.0",
  "org.postgresql" % "postgresql" % "9.4-1201-jdbc41",
- "com.github.nscala-time" %% "nscala-time" % "2.0.0",
- "pl.matisoft" %% "swagger-play24" % "1.4",
- "no.met.data" %% "util" % "0.2-SNAPSHOT",
- "no.met.data" %% "auth" % "0.2-SNAPSHOT",
+ "com.github.nscala-time" %% "nscala-time" % "2.12.0",
+ "io.swagger" %% "swagger-play2" % "1.5.2",
+ "no.met.data" %% "util" % "0.3-SNAPSHOT",
+ "no.met.data" %% "auth" % "0.3-SNAPSHOT",
   specs2 % Test
 )
 

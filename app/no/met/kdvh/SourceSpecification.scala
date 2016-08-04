@@ -25,6 +25,7 @@
 
 package no.met.kdvh
 
+import scala.language.postfixOps
 import scala.util._
 
 /**

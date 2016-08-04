@@ -27,21 +27,13 @@ package services.observations
 
 import play.api.mvc._
 import play.api.libs.json._
-import play.api.libs.json.Json.toJsFieldJsValueWrapper
-import com.github.nscala_time.time.Imports.DateTime
 import com.github.nscala_time.time.Imports._
+import scala.language.postfixOps
 import no.met.data._
 import no.met.data.format.json._
 import no.met.time._
-import no.met.observation.Field
+import no.met.observation._
 import no.met.observation.Field._
-import no.met.observation.Geometry
-import no.met.observation.Metadata
-import no.met.observation.Observation
-import no.met.observation.ObservationSeries
-import no.met.observation.ObservedElement
-import no.met.observation.Point
-import no.met.observation.ResponseData
 
 object MetaData {
   val metadata = new Metadata {
