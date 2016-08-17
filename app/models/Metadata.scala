@@ -23,7 +23,7 @@
     MA 02110-1301, USA
 */
 
-package no.met.observation
+package models
 
 sealed trait GeomType {
   /**

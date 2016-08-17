@@ -23,7 +23,7 @@
     MA 02110-1301, USA
 */
 
-package no.met.observation
+package services.observations
 
 import com.github.nscala_time.time.Imports._
 

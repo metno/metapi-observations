@@ -25,18 +25,17 @@
 
 package test
 
+import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import org.junit.runner._
-import services.observations.MockElementTranslator
-import services.observations.ElementTranslator
+import services.observations._
 
 @RunWith(classOf[JUnitRunner])
 class KdvhElementTranslatorSpec extends Specification {
 
   val kdvhElemTranslatorNonProd = new MockElementTranslator
 
-  "kdvh elem translator non-prod instance" should {
+  "The mock ElementTranslator service" should {
 
     "return translated data for a single value" in {
       kdvhElemTranslatorNonProd.toKdvhElemName(None, "precipitation_amount") must equalTo(Seq("RR_24"))
@@ -47,15 +46,15 @@ class KdvhElementTranslatorSpec extends Specification {
     }
     
     "do reverse translations" in {
-      kdvhElemTranslatorNonProd.toApiElemName(None, "TA") must equalTo("air_temperature")
+      kdvhElemTranslatorNonProd.toApiElemName(None, "TA") must equalTo(Some("air_temperature"))
     }
 
     "throw exception on translation of unknown element" in {
       kdvhElemTranslatorNonProd.toKdvhElemName(None, "no_such_element") must throwA[Exception]
     }
 
-    "throw exception on reverse translation of unknown element" in {
-      kdvhElemTranslatorNonProd.toApiElemName(None, "NOTHING") must throwA[Exception]
+    "return None on reverse translation of unknown element" in {
+      kdvhElemTranslatorNonProd.toApiElemName(None, "NOTHING") must equalTo(None)
     }
   }
 }

@@ -25,9 +25,9 @@
 
 package services.observations
 
-import no.met.observation.Observation
-import no.met.observation.ObservationSeries
-import no.met.observation.ObservedElement
+import models.Observation
+import models.ObservationSeries
+import models.ObservedElement
 
 //$COVERAGE-OFF$ Throw-away code
 
@@ -41,17 +41,17 @@ object CsvFormat {
    */
   def header(d: ObservationSeries): String = {
 
-    d.observations(0).data.foldLeft("# source,\ttime")(_ + ",\t" + _.phenomenon)
+    d.observations(0).values.foldLeft("# source,\ttime")(_ + ",\t" + _.elementId)
   }
 
   def format(e: ObservedElement): String = {
     e.value.getOrElse("").toString()
   }
   def format(o: Observation): String = {
-    o.data.foldLeft(s"${o.time}")(_ + ",\t" + format(_))
+    o.values.foldLeft(s"${o.referenceTime}")(_ + ",\t" + format(_))
   }
   def format(d: ObservationSeries): String = {
-    d.observations.foldLeft("")((x, y) => x + s"${d.source},\t${format(y)}\n")
+    d.observations.foldLeft("")((x, y) => x + s"${d.sourceId},\t${format(y)}\n")
   }
 
   def format(d: Seq[ObservationSeries]): String = {

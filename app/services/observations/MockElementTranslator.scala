@@ -53,9 +53,9 @@ class MockElementTranslator extends ElementTranslator {
     ret split ","
   }
 
-  override def toApiElemName(auth:Option[String], kdvhElemName: String): String = {
-    val ret = reverseTranslations get kdvhElemName
-    ret getOrElse (throw new Exception("Invalid KDVH element name: " + kdvhElemName))
+  override def toApiElemName(auth:Option[String], kdvhElemName: String): Option[String] = {
+    reverseTranslations get kdvhElemName
+    //ret getOrElse (throw new Exception("Invalid KDVH element name: " + kdvhElemName))
   }
 }
 

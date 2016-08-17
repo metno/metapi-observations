@@ -28,13 +28,18 @@ package services.observations
 import com.github.nscala_time.time.Imports._
 import scala.annotation.tailrec
 import scala.language.postfixOps
-import no.met.kdvh.KdvhQueryResult
-import no.met.observation.TimeSeries
+import no.met.time.TimeSpecification
+import no.met.time.TimeSpecification._
+import models._
 
 /**
  * Access to a kdvh database - interface definition
  */
 abstract class DatabaseAccess {
+
+  //@throws[Exception]("in case something went wrong")
+  //def observations(auth:Option[String], sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
+
   /**
    * Get data from the kdvh database.
    *
@@ -45,7 +50,7 @@ abstract class DatabaseAccess {
    *
    * @return A sequence of KdvhQueryResult objects, containing the requested data
    */
-  def getData(stationId: Int, obstime: Seq[Interval], elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult]
+  def getObservations(elemTranslator: ElementTranslator, auth: Option[String], stationId: Seq[String], obstime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[ObservationSeries]
   /**
    * Get time series data from the kdvh database.
    *
@@ -54,7 +59,7 @@ abstract class DatabaseAccess {
    *
    * @return A sequence of KdvhQueryResult objects, containing the requested data
    */
-  def getTimeSeries(stationId: Seq[Int], elements: Seq[String]): Seq[TimeSeries]
+  def getTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], stationId: Seq[String], elements: Seq[String]): Seq[ObservationTimeSeries]
 }
 
 object DatabaseAccess {

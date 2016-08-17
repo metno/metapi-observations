@@ -27,146 +27,79 @@ package services.observations
 
 import play.api.mvc._
 import play.api.libs.json._
+import play.api.libs.functional.syntax._
 import com.github.nscala_time.time.Imports._
-import scala.language.postfixOps
-import no.met.data._
-import no.met.data.format.json._
-import no.met.time._
-import no.met.observation._
-import no.met.observation.Field._
+import java.net.URL
+import no.met.data.{ApiConstants,BasicResponseData,ConfigUtil}
+import no.met.data.format.json.BasicJsonFormat
+import models._
 
-object MetaData {
-  val metadata = new Metadata {
-    def elementUnit(element: String): Option[String] = element match {
-      case v if v.contains("temperature") => Some("celsius")
-      case v if v.contains("precipitation") => Some("mm")
-      case _ => None
-    }
-    def sourceCoordinate(source: String): Option[Geometry] =
-      Some(Geometry(Point(9.0, 62.3)))
-  }
-  val unit = metadata.elementUnit _
-  val geometry = metadata.sourceCoordinate _
-}
+//$COVERAGE-OFF$ 
 
 /**
  * Creating a json representation of observation data
  */
-class JsonFormat(fields: Set[Field]) extends BasicJsonFormat {
-  import MetaData._
+object JsonFormat extends BasicJsonFormat {
 
-  implicit val pointWrite: Writes[Point] = new Writes[Point] {
-    def writes(point: Point): JsValue = {
-      point.altitude match {
-        case Some(a) => Json.toJson(Seq(point.longitude, point.latitude, a))
-        case _ => Json.toJson(Seq(point.longitude, point.latitude))
-      }
-    }
-  }
+  implicit val observedElementWrites: Writes[ObservedElement] = (
+    (JsPath \ "elementId").writeNullable[String] and 
+    (JsPath \ "value").writeNullable[Double] and
+    (JsPath \ "unit").writeNullable[String] and
+    (JsPath \ "qualityCode").writeNullable[String]
+  )(unlift(ObservedElement.unapply))
 
-  implicit val geometryWrite: Writes[Geometry] = new Writes[Geometry] {
-    def writes(g: Geometry): JsValue = g.geom match {
-      case p: Point =>
-        Json.obj("type" -> "Point",
-          "coordinates" -> p)
-      case gt => JsNull
-      //Undefined("Invalid or unimplmented geometry type '" + gt.toString() + "'.")
-    }
-  }
+  implicit val observationWrites: Writes[Observation] = (
+    (JsPath \ "referenceTime").write[DateTime] and 
+    (JsPath \ "values").write[Seq[ObservedElement]]
+  )(unlift(Observation.unapply))
 
-  implicit val observedElementWrites: Writes[ObservedElement] = new Writes[ObservedElement] {
-    def writes(observation: ObservedElement): JsObject = {
+  implicit val observationSeriesWrites: Writes[ObservationSeries] = (
+    (JsPath \ "sourceId").write[String] and 
+    (JsPath \ "observations").write[Seq[Observation]]
+  )(unlift(ObservationSeries.unapply))
 
-      val wanted = Set(Field.value, Field.unit, Field.qualityCode)
-      val vals = fields filter (wanted contains _) map {
-        _ match {
-          case Field.value => "value" -> Json.toJson(observation.value)
-          case Field.unit => "unit" -> Json.toJson(unit(observation.phenomenon))
-          case Field.qualityCode => "qualityCode" -> Json.toJson(observation.quality)
-        }
-      } toList
-
-      Json.obj(
-        observation.phenomenon -> JsObject(
-          vals.flatMap { v =>
-            v._2 match {
-              case JsNull => Nil
-              case _ => List(v)
-            }
-          }))
-    }
-  }
-
-  implicit val seqObservedElementWrites: Writes[Traversable[ObservedElement]] =
-    new Writes[Traversable[ObservedElement]] {
-      def writes(seq: Traversable[ObservedElement]): JsValue = JsArray {
-        (for (e <- seq if !e.empty) yield Json.toJson(e)).toSeq
-      }
-    }
-
-  implicit val observationWrites: Writes[Observation] = new Writes[Observation] {
-    def writes(observation: Observation): JsObject = {
-
-      var elements = List.empty[(String, JsValue)]
-      if (fields.contains(Field.value) || fields.contains(Field.unit) || fields.contains(Field.qualityCode)) {
-        elements = "values" -> Json.toJson(observation.data) :: elements
-      }
-      if (fields contains Field.reftime) {
-        elements = "reftime" -> Json.toJson(observation.time) :: elements
-      }
-      new JsObject(elements.toMap[String, JsValue])
-    }
-  }
-/*
- *       var elements = List.empty[(String, JsValue)]
-      if (fields.contains(Field.value) || fields.contains(Field.unit) || fields.contains(Field.qualityCode)) {
-        elements = "values" -> Json.toJson(observation.data) :: elements
-      }
-      if (fields contains Field.reftime) {
-        elements = "reftime" -> Json.toJson(observation.time) :: elements
-      }
-      new JsObject(elements)
- *
- */
-
-  implicit val observationSeriesWrites: Writes[ObservationSeries] = new Writes[ObservationSeries] {
-    def writes(observation: ObservationSeries): JsObject = Json.obj(
-      "@type" -> "DataCollection",
-      "source" -> s"KS${observation.source}",
-      "level" -> "ground_level",
-      "geometry" -> geometry(s"KS${observation.source}"),
-      "dataSet" -> observation.observations)
-  }
-
-  implicit val responseDataWrites: Writes[ResponseData] = new Writes[ResponseData] {
-    def writes(response: ResponseData): JsObject = {
-      header(response.header) + ("data", Json.toJson(response.data))
-    }
-  }
-
-  private def dataSize(observations: Traversable[ObservationSeries]): Long =
-    observations.foldLeft(0) { (sum, v) =>
-      sum + v.observations.foldLeft(0) {
-        (sum, v) =>
-          sum + v.data.foldLeft(0) { (sum, e) =>
-            sum + (if (e.empty) 0 else 1)
-          }
-      }
-    }
+  implicit val observationResponseWrites: Writes[ObservationResponse] = (
+    (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and 
+    (JsPath \ ApiConstants.OBJECT_TYPE_NAME).write[String] and
+    (JsPath \ ApiConstants.API_VERSION_NAME).write[String] and
+    (JsPath \ ApiConstants.LICENSE_NAME).write[URL] and
+    (JsPath \ ApiConstants.CREATED_AT_NAME).write[DateTime] and
+    (JsPath \ ApiConstants.QUERY_TIME_NAME).write[Duration] and
+    (JsPath \ ApiConstants.CURRENT_ITEM_COUNT_NAME).write[Long] and
+    (JsPath \ ApiConstants.ITEMS_PER_PAGE_NAME).write[Long] and
+    (JsPath \ ApiConstants.OFFSET_NAME).write[Long] and
+    (JsPath \ ApiConstants.TOTAL_ITEM_COUNT_NAME).write[Long] and
+    (JsPath \ ApiConstants.NEXT_LINK_NAME).writeNullable[URL] and
+    (JsPath \ ApiConstants.PREVIOUS_LINK_NAME).writeNullable[URL] and
+    (JsPath \ ApiConstants.CURRENT_LINK_NAME).write[URL] and
+    (JsPath \ ApiConstants.DATA_NAME).write[Seq[ObservationSeries]]
+  )(unlift(ObservationResponse.unapply))
 
   /**
    * Create json representation of the given list
-   *
+   * @param start Start time of the query processing.
    * @param observations The list to create a representation of.
    * @return json representation, as a string
    */
-  def format[A](start: DateTime, observations: Traversable[ObservationSeries])(implicit request: Request[A]): String = {
-    val size = dataSize(observations)
+  def format[A](start: DateTime, observations: Seq[ObservationSeries])(implicit request: Request[A]): String = {
+    val size = observations.size // TODO: dataSize(observations)
     val duration = new Duration(DateTime.now.getMillis() - start.getMillis())
-    val header = BasicResponseData("Response", "Observations", "v0", duration, size, size, size, 0, None, None)
-
-    val response = ResponseData(header, observations)
+    val response = new ObservationResponse( new URL(ApiConstants.METAPI_CONTEXT),
+                                       "ObservationResponse",
+                                       "v0",
+                                        new URL(ApiConstants.METAPI_LICENSE),
+                                        start,
+                                        duration,
+                                        size,
+                                        size,
+                                        0,
+                                        size,
+                                        None,
+                                        None,
+                                        new URL(ConfigUtil.urlStart + request.uri),
+                                        observations)
     Json.prettyPrint(Json.toJson(response))
   }
   
 }
+//$COVERAGE-ON

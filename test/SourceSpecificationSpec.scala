@@ -25,11 +25,11 @@
 
 package test
 
-import no.met.kdvh._
+import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import org.junit.runner._
 import scala.util._
+import services.observations._
 
 // scalastyle:off magic.number
 
@@ -39,23 +39,23 @@ class SourceSpecificationSpec extends Specification {
   "SourceSpecification" should {
 
     "parse single source" in {
-      val s = Seq(1234)
-      SourceSpecification.parse("KN1234") must equalTo(s)
-      SourceSpecification.parse("KN1234 ") must equalTo(s)
-      SourceSpecification.parse(" KN1234") must equalTo(s)
-      SourceSpecification.parse(" KN1234 ") must equalTo(s)
-      SourceSpecification.parse("KN1234,") must equalTo(s)
-      SourceSpecification.parse("KN1234,,") must equalTo(s)
+      val s = Seq("1234")
+      SourceSpecification.parse("SN1234") must equalTo(s)
+      SourceSpecification.parse("SN1234 ") must equalTo(s)
+      SourceSpecification.parse(" SN1234") must equalTo(s)
+      SourceSpecification.parse(" SN1234 ") must equalTo(s)
+      SourceSpecification.parse("SN1234,") must equalTo(s)
+      SourceSpecification.parse("SN1234,,") must equalTo(s)
     }
 
     "parse multiple sources" in {
-      val s = Seq(1234, 5678)
-      SourceSpecification.parse("KN1234,KN5678") must equalTo(s)
-      SourceSpecification.parse("KN1234, KN5678") must equalTo(s)
-      SourceSpecification.parse("KN1234 ,KN5678") must equalTo(s)
-      SourceSpecification.parse("KN1234 , KN5678") must equalTo(s)
-      SourceSpecification.parse(" KN1234,KN5678 ") must equalTo(s)
-      SourceSpecification.parse(" KN1234 , KN5678 ") must equalTo(s)
+      val s = Seq("1234", "5678")
+      SourceSpecification.parse("SN1234,SN5678") must equalTo(s)
+      SourceSpecification.parse("SN1234, SN5678") must equalTo(s)
+      SourceSpecification.parse("SN1234 ,SN5678") must equalTo(s)
+      SourceSpecification.parse("SN1234 , SN5678") must equalTo(s)
+      SourceSpecification.parse(" SN1234,SN5678 ") must equalTo(s)
+      SourceSpecification.parse(" SN1234 , SN5678 ") must equalTo(s)
     }
 
     "parse empty" in {
@@ -65,15 +65,15 @@ class SourceSpecificationSpec extends Specification {
 
     "throw exception" in {
       SourceSpecification.parse(", ,") must throwA[Exception]
-      SourceSpecification.parse(",KN1234") must throwA[Exception]
-      SourceSpecification.parse(",KN1234 ,") must throwA[Exception]
-      SourceSpecification.parse(",,KN1234 ,") must throwA[Exception]
-      SourceSpecification.parse(",KN1234 ,  KN5678") must throwA[Exception]
-      SourceSpecification.parse(",KN1234 ,  KN5678,,") must throwA[Exception]
+      SourceSpecification.parse(",SN1234") must throwA[Exception]
+      SourceSpecification.parse(",SN1234 ,") must throwA[Exception]
+      SourceSpecification.parse(",,SN1234 ,") must throwA[Exception]
+      SourceSpecification.parse(",SN1234 ,  SN5678") must throwA[Exception]
+      SourceSpecification.parse(",SN1234 ,  SN5678,,") must throwA[Exception]
       SourceSpecification.parse("XX1234") must throwA[Exception]
-      SourceSpecification.parse("KN 1234") must throwA[Exception]
-      SourceSpecification.parse("KN") must throwA[Exception]
-      SourceSpecification.parse(",KN1234") must throwA[Exception]
+      SourceSpecification.parse("SN 1234") must throwA[Exception]
+      SourceSpecification.parse("SN") must throwA[Exception]
+      SourceSpecification.parse(",SN1234") must throwA[Exception]
       SourceSpecification.parse("") must throwA[Exception]
     }
   }

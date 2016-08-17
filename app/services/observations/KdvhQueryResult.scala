@@ -23,11 +23,11 @@
     MA 02110-1301, USA
 */
 
-package no.met.kdvh
+package services.observations
 
 import anorm.Row
-import play.Logger
 import scala.util._
+import scala.math.BigDecimal.javaBigDecimal2bigDecimal
 
 case class ObservedData(value: Option[Double], quality: Option[String] = None)
 
@@ -106,8 +106,8 @@ object KdvhQueryResult {
 
     val r = row.asMap
 
-    val stnr = row[java.math.BigDecimal]("stnr")
-    val obstime = row[String]("obstime")
+    val stnr = row[java.math.BigDecimal]("station_number")
+    val obstime = row[String]("reference_time")
     val data = elements.foldLeft(Map.empty[String, ObservedData]) {
       (m, v) =>
 

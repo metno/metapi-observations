@@ -25,17 +25,16 @@
 
 package services.observations
 
-import javax.inject.Singleton
 import play.api.Play.current
-import play.api.libs.ws._
 import play.api.http.Status._
+import play.api.libs.ws._
+import play.Logger
+import javax.inject.Singleton
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.util._
 import ExecutionContext.Implicits.global
-
-import play.api.Logger
 
 //$COVERAGE-OFF$Not testing database queries
 
@@ -50,32 +49,33 @@ class KdvhElementTranslator extends ElementTranslator {
     // if auth is null, it is because authorization is off
     val authStr = auth.getOrElse("Basic invalid-id")
     val baseUrl = current.configuration.getString("met.elements.baseUrl") getOrElse "https://data.met.no/elements/v0.jsonld"
+    Logger.debug("Getting (" + authStr + ") - " + baseUrl + "?id=" + apiElemName)
     val request: WSRequest = WS.url(baseUrl)
                                .withHeaders("Authorization" -> authStr)
                                .withQueryString("id" -> apiElemName)
     val response: Future[WSResponse] = request.get()
 
-    val result = Await.result(response, 2 seconds)
+    val result = Await.result(response, 5 seconds)
     result.status match {
-      case OK => ((result.json \ "data")(0) \ "kdvhConvention" \ "code").get.as[String]  split ","
+      case OK => ((result.json \ "data")(0) \ "legacyMetNoConvention" \ "elemCode").get.as[String]  split ","
       case _  => throw new Exception("Failed to translate to KDVH element name: " + apiElemName)
     }
 
   }
 
-  override def toApiElemName(auth: Option[String], kdvhElemName: String): String = {
+  override def toApiElemName(auth: Option[String], kdvhElemName: String): Option[String] = {
     // if auth is null, it is because authorization is off
     val authStr = auth.getOrElse("Basic invalid-id")
     val baseUrl = current.configuration.getString("met.elements.baseUrl") getOrElse "https://data.met.no/elements/v0.jsonld"
     val request: WSRequest = WS.url(baseUrl)
                                .withHeaders("Authorization" -> authStr)
-                               .withQueryString("code" -> kdvhElemName)
+                               .withQueryString("legacyElemCode" -> kdvhElemName)
     val response: Future[WSResponse] = request.get()
 
-    val result = Await.result(response, 2 seconds)
+    val result = Await.result(response, 5 seconds)
     result.status match {
-      case OK => ((result.json \ "data")(0) \ "id").get.as[String]
-      case _  => throw new Exception("Failed to translate to API element name: " + kdvhElemName)
+      case OK => Some(((result.json \ "data")(0) \ "id").get.as[String])
+      case _  => None
     }
 
   }

@@ -27,46 +27,19 @@ package controllers
 import play.api._
 import play.api.mvc._
 import com.github.nscala_time.time.Imports._
-import com.github.nscala_time.time.Imports.DateTime
 import io.swagger.annotations._
 import javax.inject.Inject
 import scala.language.postfixOps
 import util._
-
-import no.met.kdvh._
-import no.met.observation._
-import no.met.observation.Field._
-import no.met.time._
-import services.observations.JsonTimeSeriesFormat
+import no.met.time.TimeSpecification
 import services.observations._
 
-// $COVERAGE-OFF$ To be tested later, when interface is more permanent
+//$COVERAGE-OFF$ 
 
-@Api(value = "/observations", description = "Retrieve observation data")
-class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTranslator: ElementTranslator) extends Controller {
+@Api(value = "/observations")
+class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslator: ElementTranslator) extends Controller {
 
-  /**
-   * Lookup data from kdvh.
-   *
-   * @param stationId station number in database
-   * @param fromTime Earliest time to get data for, inclusive
-   * @param toTime Latest time to getdata for, exclusive
-   * @param elements comma-separated string of elements to search for
-   */
-  def kdvhLookup(stationId: Int, fromTime: String, toTime: String, elements: String) = Action { // scalastyle:ignore public.methods.have.type
-
-    val start = DateTime.parse(fromTime)
-    val end = DateTime.parse(toTime)
-    val elementList = elements.split(",")
-
-    val data = kdvhDBAccess.getData(stationId, List(start to end), elementList, false)
-    if (data.isEmpty) {
-      NotFound("No data found for station " + stationId)
-    } else {
-      Ok(data.foldLeft(data(0).header)(_ + "\n" + _.toString()))
-    }
-  }
-
+  /*
   def fieldSet(fields: Option[String]): Set[Field] = fields match {
     case None     => Field.default
     case Some("") => Field.default
@@ -80,43 +53,72 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
       } toSet
     }
   }
+  * 
+  */
 
   /**
-   * Lookup data from kdvh, using data.met.no interface
-   *
-   * @param sources location specifications for wanted data, comma-separated
-   * @param reftime time specifications
-   * @param elements Element names
+   * GET observations data from the KDVH database
    */
   @ApiOperation(
-    nickname = "observations",
-    value = "Retrieve observation data based on source (station ID) and/or reference (observation) time. Filter by element.",
+    value = "Get observation data from the MET API.",
+    notes = """This is the core resource for retrieving the actual observation data from MET Norway's data storage
+              |systems. The query parameters act as a filter; if all were left blank (not allowed in practice), one
+              |would retrieve all of the observation data in the system. Restrict the data using the query parameters.
+              |For possible input parameters see /sources, /elements, and /observations/timeseries.""",
     response = classOf[String],
     httpMethod = "GET")
   @ApiResponses(Array(
-    new ApiResponse(code = 400, message = "An error in the request"), // scalastyle:ignore magic.number
-    new ApiResponse(code = 404, message = "No data was found"))) // scalastyle:ignore magic.number
+    new ApiResponse(code = 400, message = "Invalid parameter value or malformed request."), // scalastyle:ignore magic.number
+    new ApiResponse(code = 401, message = "Unauthorized client ID."), // scalastyle:ignore magic.number
+    new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
+    new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def observations( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = "Data source, comma separated", required = true) sources: String,
-    @ApiParam(value = "Time range to get data for", required = true) reftime: String,
-    @ApiParam(value = "Phenomena to access", required = true) elements: String,
-    @ApiParam(value = "Fields to access", required = false, allowableValues = "value,unit,qualityCode") fields: Option[String],
-    @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
-      defaultValue = "jsonld") format: String) = no.met.security.AuthorizedAction {
+    @ApiParam(value = """The ID(s) of the data sources that you want observations from. Enter a comma-separated list
+                        |to retrieve data from multiple sources. To retrieve a station, use the MET API station ID;
+                        |e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the
+                        |<a href=\"https://data.met.no/docs#/sources\">sources</a> resource.""",
+              required = true)
+              sources: String,
+    @ApiParam(value = """The time range that you want observations for. Time ranges are specified in an extended
+                        |ISO-8601 format; see the
+                        |<a href=\"https://data.met.no/references#time_specification\">Time Specification</a> for
+                        |documentation and examples.""",
+              required = true)
+              reftime: String,
+    @ApiParam(value = """The elements that you want observations for. Enter a comma-separated list to retrieve data
+                        |for multiple elements. Elements follow the MET API naming convention and a complete list of
+                        |all elements in the system can be retrieves using the
+                        |<a href=\"https://data.met.no/docs#/elements\">elements</a> resource.""",
+              required = true)
+              elements: String,
+    @ApiParam(value = "Fields to access",
+              required = false,
+              allowableValues = "value,unit,qualityCode")
+              fields: Option[String],
+    @ApiParam(value = "The output format of the result.",
+              required = true,
+              allowableValues = "jsonld,csv",
+              defaultValue = "jsonld")
+              format: String) = no.met.security.AuthorizedAction {
     implicit request =>
 
     val start = DateTime.now(DateTimeZone.UTC)
 
-    var fieldList = Set.empty[Field]
+    //var fieldList = Set.empty[Field]
 
     Try {
       val auth = request.headers.get("Authorization")
-      val sourceList = SourceSpecification.parse(sources)
-      val times = TimeSpecification.parse(reftime).get
-      val elementList = elements split "," map (_ trim)
-      fieldList = fieldSet(fields)
-      val obsAccess = new KdvhObservationAccess(kdvhDBAccess, kdvhElemTranslator)
-      obsAccess.observations(auth, sourceList, times, elementList, fieldList)
+      Logger.debug("Authorization: " + auth)
+      val sourceDef = SourceSpecification.parse(sources)
+      val timeDef = TimeSpecification.parse(reftime).get
+      val elementDef = elements split "," map (_ trim)
+      dataAccess.getObservations(elemTranslator, auth, sourceDef, timeDef, elementDef, true); 
+      /*
+      DatabaseAccess.sanitize(elements)
+       * 
+       * fieldList = fieldSet(fields)
+      val obsAccess = new KdvhDBAccess.observations(kdvhDBAccess, kdvhElemTranslator)
+      obsAccess.observations(auth, sourceList, times, elementList, fieldList)*/
     } match {
       case Success(data) =>
         if (data isEmpty) {
@@ -124,7 +126,7 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
         } else {
           format.toLowerCase() match {
             case "csv"    => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
-            case "jsonld" => Ok(new JsonFormat(fieldList).format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
+            case "jsonld" => Ok(JsonFormat.format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
             case x        => BadRequest(s"Invalid output format: $x")
           }
         }
@@ -145,23 +147,42 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
     response = classOf[String],
     httpMethod = "GET")
   @ApiResponses(Array(
-    new ApiResponse(code = 400, message = "An error in the request"), // scalastyle:ignore magic.number
-    new ApiResponse(code = 404, message = "No data was found"))) // scalastyle:ignore magic.number
+    new ApiResponse(code = 400, message = "Invalid parameter value or malformed request."), // scalastyle:ignore magic.number
+    new ApiResponse(code = 401, message = "Unauthorized client ID."), // scalastyle:ignore magic.number
+    new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
+    new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def timeSeries( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = "Data source, comma separated", required = false) sources: Option[String],
-    @ApiParam(value = "Phenomena to access", required = false) elements: Option[String],
-    @ApiParam(value = "Fields to access", required = false) fields: Option[String],
-    @ApiParam(value = "output format", required = true, allowableValues = "jsonld,csv",
-      defaultValue = "jsonld") format: String) = no.met.security.AuthorizedAction {
+    @ApiParam(value = """The ID(s) of the data sources that you want observations from. Enter a comma-separated list
+                        |to retrieve data from multiple sources. To retrieve a station, use the MET API station ID;
+                        |e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the
+                        |<a href=\"https://data.met.no/docs#/sources\">sources</a> resource. Leave the query parameter
+                        |empty to retrieve timeseries for all available stations.""",
+        required = false)
+        sources: Option[String],
+    @ApiParam(value = """The elements that you want observations for. Enter a comma-separated list to retrieve data
+                        |for multiple elements. Elements follow the MET API naming convention and a complete list of
+                        |all elements in the system can be retrieves using the
+                        |<a href=\"https://data.met.no/docs#/elements\">elements</a> resource. leave the query parameter
+                        |empty to retrieve timeseries for all available elements.""",
+        required = false)
+        elements: Option[String],
+    @ApiParam(value = "Fields to access",
+        required = false)
+        fields: Option[String],
+    @ApiParam(value = "The output format of the result.",
+        required = true,
+        allowableValues = "jsonld",
+        defaultValue = "jsonld")
+        format: String) = no.met.security.AuthorizedAction {
     implicit request =>
 
     val start = DateTime.now(DateTimeZone.UTC)
 
-    var fieldList = Set.empty[Field]
+    //var fieldList = Set.empty[Field]
 
     Try {
       val auth = request.headers.get("Authorization")
-      val sourceList : Seq[Int] = sources match {
+      val sourceList : Seq[String] = sources match {
         case Some(sources) => SourceSpecification.parse(sources)
         case _ => Seq()
       }
@@ -169,8 +190,8 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
         case Some(elements) => elements split "," map (_ trim)
         case _ => Seq()
       }
-      fieldList = fieldSet(fields)
-      kdvhDBAccess.getTimeSeries(sourceList, elementList)
+      //fieldList = fieldSet(fields)
+      dataAccess.getTimeSeries(elemTranslator, auth, sourceList, elementList)
     } match {
       case Success(data) =>
         if (data isEmpty) {
@@ -186,4 +207,5 @@ class ObservationsController @Inject()(kdvhDBAccess: DatabaseAccess, kdvhElemTra
   }
 
 }
-// $COVERAGE-ON$
+
+//$COVERAGE-ON$ 

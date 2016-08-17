@@ -1,6 +1,6 @@
 organization := "no.met.data"
 name := """observations"""
-version := "0.3-SNAPSHOT"
+version := "0.4-SNAPSHOT"
 description := "Observations module of the metapi."
 homepage :=  Some(url(s"https://github.com/metno"))
 licenses += "GPL-2.0" -> url("https://www.gnu.org/licenses/gpl-2.0.html")
@@ -62,7 +62,6 @@ publishArtifact in Test := false
 
 // Testing
 // ----------------------------------------------------------------------
-javaOptions += "-Djunit.outdir=target/test-report"
 coverageHighlighting := true
 coverageMinimum := 95
 coverageFailOnMinimum := true
@@ -72,7 +71,7 @@ coverageExcludedPackages := """
   ReverseApplication;
   ReverseAssets;
   observations.Routes;
-  views.html;
+  observations.RoutesPrefix;
 """
 
 // Play provides two styles of routers, one expects its actions to be injected, the

@@ -30,6 +30,7 @@ import play.Logger
 import play.api.db._
 import play.api.libs.ws._
 import anorm._
+import anorm.SqlParser._
 import com.github.nscala_time.time.Imports._
 import java.sql.Connection
 import javax.inject.Singleton
@@ -37,12 +38,12 @@ import scala.annotation.tailrec
 import scala.concurrent._
 import scala.language.postfixOps
 import scala.util._
-import no.met.kdvh._
-import no.met.time._
-import no.met.observation._
-import services._
+import no.met.time.TimeSpecification
+import no.met.time.TimeSpecification._
+import models._
+import services.observations._
 
-//$COVERAGE-OFF$Not testing database queries
+//$COVERAGE-OFF$ Unit Tests do not cover Database Access
 
 /**
  * Concrete implementation of KdvhDatabaseAccess class, connecting to a real kdvh
@@ -51,35 +52,42 @@ import services._
 @Singleton
 class KdvhDatabaseAccess extends DatabaseAccess {
 
-  private def queryWithoutQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval]): String = {
+  /**
+   * ISO-8601 datetime format
+   */
+  private val dateFormat = "YYYY-MM-DD\"T\"HH24:MI:SS.\"000Z\""
 
+  /** Retrieve data from KDVH without quality information. 
+   */
+  private def queryWithoutQuality(table: String, tableParameters: Iterable[String], stationId: String, refTime: Seq[Interval]): String = {
     val param = tableParameters map ("d." + _) reduce (_ + ", " + _)
-
+    
     s"""
         SELECT
-          |d.stnr,
-          |TO_CHAR(d.dato, '$dateFormat') AS obstime,
-          |d.typeid,
+          |d.stnr AS station_number,
+          |TO_CHAR(d.dato, '$dateFormat') AS reference_time,
+          |d.typeid AS type_id,
           |$param
         |FROM
           |$table d
         |WHERE
           |d.stnr=$stationId AND
-          |${timeQueryFragment(obstime)}
+          |${timeQueryFragment(refTime)}
         |ORDER BY
-          |d.stnr, d.dato, d.typeid""".stripMargin
+          |station_number, reference_time, type_id""".stripMargin
   }
 
-  private def queryWithQuality(table: String, tableParameters: Iterable[String], stationId: Int, obstime: Seq[Interval]): String = {
-
+  /** Retrieve data from KDVH with quality information.
+   */
+  private def queryWithQuality(table: String, tableParameters: Iterable[String], stationId: String, refTime: Seq[Interval]): String = {
     val param = tableParameters map (t => s"d.$t, q.$t as ${t}_flag") reduce (_ + ", " + _)
     val qualityTable = qualityTableFor(table)
 
     s"""
         |SELECT
-          |d.stnr,
-          |TO_CHAR(d.dato, '$dateFormat') AS obstime,
-          |d.typeid,
+          |d.stnr as station_number,
+          |TO_CHAR(d.dato, '$dateFormat') AS reference_time,
+          |d.typeid AS type_id,
           |$param
         |FROM
           |$table d,
@@ -89,58 +97,37 @@ class KdvhDatabaseAccess extends DatabaseAccess {
           |d.dato = q.dato AND
           |d.typeid = q.typeid AND
           |d.stnr=$stationId AND
-          |${timeQueryFragment(obstime)}
+          |${timeQueryFragment(refTime)}
         |ORDER BY
-          |d.stnr, d.dato, d.typeid""".stripMargin
+          |station_number, reference_time, type_id""".stripMargin
   }
 
-  override def getData(stationId: Int, obstime: Seq[Interval], elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult] = {
-    Logger.debug("KdvhAccess.getData() ...")
-    Logger.debug("Elements: " + elements.mkString(", "))
-    var ret = List[KdvhQueryResult]()
-
-    if (!elements.isEmpty) {
-
-      DatabaseAccess.sanitize(elements)
-
-      DB.withConnection("kdvh") { implicit conn =>
-
-        val tables = observationTables(stationId, obstime, elements, conn)
-
-        for ((table, tableParameters) <- tables) {
-
-          val query = withQuality match {
-            case true  => queryWithQuality(table, tableParameters, stationId, obstime)
-            case false => queryWithoutQuality(table, tableParameters, stationId, obstime)
-          }
-          val result = SQL(query)()(conn)
-          val results = result map (KdvhQueryResult(_, tableParameters))
-          ret = KdvhQueryResult.merge(ret, results)
-        }
-      }
-    }
-    ret
-  }
-  
-  /**
-   * Date format to use when communicating with oracle database
+  /** Get the name of the table giving quality information about data.
+   * @param dataTableName name of the table we are getting data for
+   * @returns the quality table matching the given data table
    */
-  private val dateFormat = "YYYY-MM-DD\"T\"HH24:MI:SS.\"000Z\""
+  @throws[Exception]("in case input parameter seemed wrong")
+  private def qualityTableFor(dataTableName: String): String = {
+    val tableExpression = "t_(.)data".r
 
-  /**
-   * Find out what tables contain the requested data for the given time range.
+    dataTableName toLowerCase match {
+      case tableExpression(t) => s"t_${t}flag";
+      case _                  => throw new Exception("Unrecognized table name");
+    }
+  }
+
+
+  /** Get the tables containing data for the requested time range and elements.
    *
    * @param stationId id of station to query
    * @param obstime time range we want data for from is inclusive, to is exclusive
    * @param elements list of kdvh element names
    * @param conn database connection object
    *
-   * @return A map containing table name -> List[element name] entries,
-   *          signifying what tables contain which ones of the requested
-   *          elements.
+   * @return A map containing table name -> List[element name] entries, signifying what tables contain which ones of
+   * 				 the requested elements.
    */
-  private def observationTables(stationId: Int, obstime: TimeSpecification.Range, elements: Traversable[String], conn: Connection): Map[String, Seq[String]] = {
-
+  private def observationTables(stationId: String, refTime: TimeSpecification.Range, elements: Traversable[String], conn: Connection): Map[String, Seq[String]] = {
     val elem = elements reduce (_ + "', '" + _)
     val query = s"""
       |SELECT
@@ -148,7 +135,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       |FROM
         |t_elem_obs
       |WHERE
-        |stnr={stnr} AND
+        |stnr=$stationId AND
         |elem_code IN ('$elem') AND
         |fdato <= TO_DATE({start}, '$dateFormat') AND
         |(tdato IS NULL OR tdato >= TO_DATE({end}, '$dateFormat'))""".stripMargin
@@ -156,9 +143,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     Logger.debug(query)
         
     val result = SQL(query).on(
-      "stnr" -> stationId,
-      "start" -> TimeSpecification.min(obstime).toString,
-      "end" -> TimeSpecification.max(obstime).toString)()(conn)
+      "start" -> TimeSpecification.min(refTime).toString,
+      "end" -> TimeSpecification.max(refTime).toString)()(conn)
 
     val ret = collection.mutable.Map[String, List[String]]()
 
@@ -177,7 +163,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
   /**
    * Get a fragment of an sql query, specifying the time we want data for
    */
-  private def timeQueryFragment(obstime: Seq[Interval]): String = {
+  private def timeQueryFragment(time: Seq[Interval]): String = {
     def sqlStringify(t: Interval): String = {
       if (t.duration == new Duration(0)) {
         s"d.dato = TO_DATE('${t.getStart}', '$dateFormat')"
@@ -185,31 +171,77 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         s"(d.dato >= TO_DATE('${t.getStart}', '$dateFormat') AND d.dato <= TO_DATE('${t.getEnd}', '$dateFormat'))"
       }
     }
-    val alternatives = obstime map { sqlStringify _ } reduce { _ + " OR " + _ }
+    val alternatives = time map { sqlStringify _ } reduce { _ + " OR " + _ }
     s"($alternatives)"
   }
 
-  /**
-   * Get the name of the table giving quality information about data. (There are several such tables).
-   *
-   * @param dataTableName name of the table we are getting data for
-   * @returns the quality table matching the given data table
-   */
-  @throws[Exception]("in case input parameter seemed wrong")
-  private def qualityTableFor(dataTableName: String): String = {
-    val tableExpression = "t_(.)data".r
+  /** Get observation data for a single source and refTime */
+  def getDataForRefTime(stationId: String, refTime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[KdvhQueryResult] = {
+    var ret = List[KdvhQueryResult]()
 
-    dataTableName toLowerCase match {
-      case tableExpression(t) => s"t_${t}flag";
-      case _                  => throw new Exception("Unrecognized table name");
+    DB.withConnection("kdvh") { implicit conn =>
+
+      val tables = observationTables(stationId, refTime, elements, conn)
+
+      for ((table, tableParameters) <- tables) {
+
+        val query = withQuality match {
+          case true  => queryWithQuality(table, tableParameters, stationId, refTime)
+          case false => queryWithoutQuality(table, tableParameters, stationId, refTime)
+        }
+        
+        Logger.debug(query)
+
+        val result = SQL(query)()(conn)
+        val results = result map (KdvhQueryResult(_, tableParameters))
+        ret = KdvhQueryResult.merge(ret, results)
+      }
+    }
+    ret
+  }
+  
+  private def getDataForSource(elemTranslator: ElementTranslator, auth: Option[String], source: String, refTime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[Observation] = {
+    val kdvhElements = elements map (elemTranslator.toKdvhElemName(auth, _))
+    Logger.debug("kdvhElements ..." + kdvhElements.toString)
+    val databaseResult = getDataForRefTime(source, refTime, kdvhElements.flatten, withQuality)
+
+    databaseResult map {
+      (r: KdvhQueryResult) =>
+        {
+          val time = DateTime.parse(r.date)
+          val data = r.element.map { (v) =>
+            ObservedElement(elemTranslator.toApiElemName(auth, v._1), v._2.value, None, v._2.quality)
+          }
+          Observation(time, data toList)
+        }
     }
   }
+  
+  def getObservations(elemTranslator: ElementTranslator, auth: Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[ObservationSeries] = {
+    Logger.debug("KdvhAccess.getObservations() ...")
+    
+    sources.map((source) => ObservationSeries(source, getDataForSource(elemTranslator, auth, source, refTime, elements, withQuality)))
+  }
+
+
 
   /**
-   * Retrieve time series data from KDVH/KDVH-proxy
+   * Retrieve time series data from KDVH/KDVH-proxy 
    */
-  override def getTimeSeries(stationIds: Seq[Int], elements: Seq[String]): List[TimeSeries] = {
+  override def getTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], stationIds: Seq[String], elements: Seq[String]): List[ObservationTimeSeries] = {
     Logger.debug("KdvhAccess.getTimeSeriesData() ...")
+    
+    val parser: RowParser[ObservationTimeSeries] = {
+      get[Long]("station") ~
+      get[Option[Int]]("sensor_number") ~
+      get[String]("from_date") ~
+      get[Option[String]]("to_date") ~
+      get[Option[String]]("kdvh_element") ~
+      get[String]("observation_timespan") ~
+      get[String]("time_offset") map {
+        case sourceId~sensorNr~fromDate~toDate~elementId~obsTimeSpan~timeOffset => ObservationTimeSeries(sourceId.toString, sensorNr, fromDate, toDate, elementId, obsTimeSpan, timeOffset)
+      }
+    }
     
     DB.withConnection("kdvh") { implicit conn =>
       var stationQ = "TRUE"
@@ -227,9 +259,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
           |SELECT
             |STNR AS station,
             |SENSOR_NR AS sensor_number,
-            |ELEM_CODE AS kdvh_element,
             |TO_CHAR(FROMDATE, '$dateFormat') AS from_date,
             |TO_CHAR(TODATE, '$dateFormat') AS to_date,
+            |ELEM_CODE AS kdvh_element,
             |COALESCE(OBSERVATION_TIMESPAN, 'T0H0M0S') AS observation_timespan,
             |TIME_OFFSET AS time_offset
           |FROM
@@ -241,18 +273,11 @@ class KdvhDatabaseAccess extends DatabaseAccess {
           |ORDER BY
             |station, kdvh_element, from_date""".stripMargin
       Logger.debug(query)
-      val result = SQL(query)()(conn)
-      result.map ( row =>
-          TimeSeries(
-              row[Int]("station"),
-              row[Int]("sensor_number"),
-              row[String]("kdvh_element"),
-              row[String]("from_date"),
-              row[Option[String]]("to_date"),
-              row[String]("observation_timespan"),
-              row[String]("time_offset")
-          )
-      ).toList
+      
+      val result = SQL(query).as( parser * )
+      result.map ( 
+        row => row.copy(sourceId = "SN" + row.sourceId, elementId = elemTranslator.toApiElemName(auth, row.elementId.get))
+      )
     }
   }
 

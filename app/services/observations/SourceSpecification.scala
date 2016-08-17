@@ -23,7 +23,7 @@
     MA 02110-1301, USA
 */
 
-package no.met.kdvh
+package services.observations
 
 import scala.language.postfixOps
 import scala.util._
@@ -35,9 +35,9 @@ object SourceSpecification {
 
   /**
    * Attempts to extract a list of climate station numbers from a string.
-   * @param sources A list of one or more climate station numbers prefixed with "KN", e.g. "KN1234, KN4567".
+   * @param sources A list of one or more climate station numbers prefixed with "SN", e.g. "SN1234, SN4567".
    */
-  def parse(sources: String): Seq[Int] = {
+  def parse(sources: String): Seq[String] = {
 
     /**
      * Returns the integer resulting from removing a prefix from a string.
@@ -45,15 +45,16 @@ object SourceSpecification {
      * @param prefix Prefix, expected to be a combination of characters from [a-z] and [A-Z].
      *   Special characters are not guaranteed to work (in particular not '(' and ')').
      */
-    def stripPrefixFromInt(s: String, prefix: String): Int = {
+    def stripPrefixFromInt(s: String, prefix: String): String = {
       val pattern = s"""$prefix(\\d+)""".r
       s match {
-        case pattern(x) => x.toInt
+        case pattern(x) => x
         case _ => throw new no.met.data.BadRequestException(s"Invalid source name: $s (expected $prefix<int>)",
           Some(s"Currently, all sources must have the prefix $prefix, like this: ${prefix}18700"))
       }
     }
 
-    sources split "," map (s => stripPrefixFromInt(s.trim().toString, "KN")) toSeq
+    sources split "," map (s => stripPrefixFromInt(s.trim().toString, "SN")) toSeq
+    
   }
 }

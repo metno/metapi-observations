@@ -29,6 +29,7 @@ package services.observations
  * Interface for translating between kdvh and api element names
  */
 abstract class ElementTranslator {
+  
   /**
    * Translates an API element name to a KDVH element name.
    */
@@ -37,5 +38,6 @@ abstract class ElementTranslator {
   /**
    * Translates a KDVH element name to an API element name.
    */
-  def toApiElemName(auth: Option[String], kdvhElemName: String): String
+  def toApiElemName(auth: Option[String], kdvhElemName: String): Option[String]
+
 }

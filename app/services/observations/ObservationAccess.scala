@@ -23,11 +23,13 @@
     MA 02110-1301, USA
 */
 
-package no.met.observation
+package services.observations
 
 import no.met.time._
-import java.util.Date
 import scala.util._
+import models.ObservationSeries
+
+//$COVERAGE-OFF$ 
 
 object Field extends Enumeration {
   type Field = Value
@@ -58,3 +60,4 @@ trait ObservationAccess {
   def observations(auth:Option[String], sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
 
 }
+//$COVERAGE-ON$ 

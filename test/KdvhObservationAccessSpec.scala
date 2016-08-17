@@ -25,20 +25,18 @@
 
 package test
 
-import no.met.observation._
-import no.met.kdvh._
-import no.met.time._
+import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import org.junit.runner._
 import com.github.nscala_time.time.Imports._
-import services.observations.MockDatabaseAccess
-import services.observations.MockElementTranslator
+import no.met.time._
+import services.observations._
 
 // We are using tons of faked values for observations in this code. Turning off
 // some scalastyle checking, which will run wild with this code
 // scalastyle:off magic.number
 
+/*
 @RunWith(classOf[JUnitRunner])
 class KdvhObservationAccessSpec extends Specification {
 
@@ -85,6 +83,6 @@ class KdvhObservationAccessSpec extends Specification {
     }
 
   }
-
   // scalastyle:on
 }
+*/
