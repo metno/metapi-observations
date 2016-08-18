@@ -61,11 +61,8 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
    */
   @ApiOperation(
     value = "Get observation data from the MET API.",
-    notes = """This is the core resource for retrieving the actual observation data from MET Norway's data storage
-              |systems. The query parameters act as a filter; if all were left blank (not allowed in practice), one
-              |would retrieve all of the observation data in the system. Restrict the data using the query parameters.
-              |For possible input parameters see /sources, /elements, and /observations/timeseries.""",
-    response = classOf[String],
+    notes = "This is the core resource for retrieving the actual observation data from MET Norway's data storage systems. The query parameters act as a filter; if all were left blank (not allowed in practice), one would retrieve all of the observation data in the system. Restrict the data using the query parameters. For possible input parameters see /sources, /elements, and /observations/timeseries.",
+    response = classOf[models.ObservationResponse],
     httpMethod = "GET")
   @ApiResponses(Array(
     new ApiResponse(code = 400, message = "Invalid parameter value or malformed request."), // scalastyle:ignore magic.number
@@ -73,22 +70,13 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def observations( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = """The ID(s) of the data sources that you want observations from. Enter a comma-separated list
-                        |to retrieve data from multiple sources. To retrieve a station, use the MET API station ID;
-                        |e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the
-                        |<a href=\"https://data.met.no/docs#/sources\">sources</a> resource.""",
+    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/docs#/sources\">sources</a> resource.",
               required = true)
               sources: String,
-    @ApiParam(value = """The time range that you want observations for. Time ranges are specified in an extended
-                        |ISO-8601 format; see the
-                        |<a href=\"https://data.met.no/references#time_specification\">Time Specification</a> for
-                        |documentation and examples.""",
+    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the referebce section on <a href=\"https://data.met.no/references.html#time_specification\">Time Specification</a> for documentation and examples.",
               required = true)
               reftime: String,
-    @ApiParam(value = """The elements that you want observations for. Enter a comma-separated list to retrieve data
-                        |for multiple elements. Elements follow the MET API naming convention and a complete list of
-                        |all elements in the system can be retrieves using the
-                        |<a href=\"https://data.met.no/docs#/elements\">elements</a> resource.""",
+    @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieves using the <a href=\"https://data.met.no/docs#/elements\">elements</a> resource.",
               required = true)
               elements: String,
     @ApiParam(value = "Fields to access",
@@ -144,7 +132,7 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
   @ApiOperation(
     nickname = "timeSeries",
     value = "Find timeseries metadata by source and/or element",
-    response = classOf[String],
+    response = classOf[models.ObservationTimeSeriesResponse],
     httpMethod = "GET")
   @ApiResponses(Array(
     new ApiResponse(code = 400, message = "Invalid parameter value or malformed request."), // scalastyle:ignore magic.number
@@ -152,18 +140,10 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def timeSeries( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = """The ID(s) of the data sources that you want observations from. Enter a comma-separated list
-                        |to retrieve data from multiple sources. To retrieve a station, use the MET API station ID;
-                        |e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the
-                        |<a href=\"https://data.met.no/docs#/sources\">sources</a> resource. Leave the query parameter
-                        |empty to retrieve timeseries for all available stations.""",
+    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/docs#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
         required = false)
         sources: Option[String],
-    @ApiParam(value = """The elements that you want observations for. Enter a comma-separated list to retrieve data
-                        |for multiple elements. Elements follow the MET API naming convention and a complete list of
-                        |all elements in the system can be retrieves using the
-                        |<a href=\"https://data.met.no/docs#/elements\">elements</a> resource. leave the query parameter
-                        |empty to retrieve timeseries for all available elements.""",
+    @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieves using the <a href=\"https://data.met.no/docs#/elements\">elements</a> resource. leave the query parameter empty to retrieve timeseries for all available elements.",
         required = false)
         elements: Option[String],
     @ApiParam(value = "Fields to access",

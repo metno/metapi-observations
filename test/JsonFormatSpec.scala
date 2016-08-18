@@ -43,6 +43,13 @@ class JsonFormatSpec extends Specification {
   val time = DateTime.parse("2015-02-01T06:00:00Z")
   val start = DateTime.now
 
+  def createJsonLd(): JsValue = {
+    implicit val request = FakeRequest("GET", "test")
+    val data = ObservationSeries(station, List(new Observation(time, List(new ObservedElement(Some("air_temperature"), Some(12.7), Some("degC"), Some("70000"))))))
+    val output = JsonFormat.format(start, List(data))
+    Json.parse(output)
+  }
+
   def createJsonLd(fields: Set[Field.Field] = Field.default): JsValue = {
     implicit val request = FakeRequest("GET", "test")
     val data = ObservationSeries(station, List(new Observation(time, List(new ObservedElement(Some("air_temperature"), Some(12.7), Some("degC"), Some("70000"))))))
@@ -61,23 +68,17 @@ class JsonFormatSpec extends Specification {
   "json formatter" should {
     
 
-    "create some output" in new WithApplication(TestUtil.app) {
+    "create correctly structured output" in new WithApplication(TestUtil.app) {
 
-      val document = new CreateJsonLd()
-      import document._
+      val json = createJsonLd()
 
-      (json \\ "data").size must equalTo(1)
-
-      (dataCollection \ "sourceId").as[JsString] must equalTo(JsString("SN18700"))
-      //(dataCollection \ "level").as[JsString] must equalTo(JsString("ground_level"))
-      //(dataCollection \ "geometry" \ "type").as[JsString] must equalTo(JsString("Point"))
-      //(dataCollection \ "geometry" \ "coordinates").as[JsValue] must equalTo(JsArray(Seq(JsNumber(9.0), JsNumber(62.3))))
-
-      (obsData \ "referenceTime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
-
-      //(temperature \ "value").as[JsNumber] must equalTo(JsNumber(12.7))
-      //(temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
-      //(temperature \ "unit").as[JsString] must equalTo(JsString("degC"))
+      (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
+      ((json \ ApiConstants.DATA_NAME)(0) \ "sourceId").as[JsString] must equalTo(JsString("SN18700"))
+      (((json \ ApiConstants.DATA_NAME)(0) \ "observations")(0) \ "referenceTime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      ((((json \ ApiConstants.DATA_NAME)(0) \ "observations")(0) \ "values")(0) \ "elementId").as[JsString] must equalTo(JsString("air_temperature"))
+      ((((json \ ApiConstants.DATA_NAME)(0) \ "observations")(0) \ "values")(0) \ "value").as[JsNumber] must equalTo(JsNumber(12.7))
+      ((((json \ ApiConstants.DATA_NAME)(0) \ "observations")(0) \ "values")(0) \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
+      ((((json \ ApiConstants.DATA_NAME)(0) \ "observations")(0) \ "values")(0) \ "unit").as[JsString] must equalTo(JsString("degC"))
     }
 
     /*

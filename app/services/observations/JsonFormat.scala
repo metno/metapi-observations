@@ -34,8 +34,6 @@ import no.met.data.{ApiConstants,BasicResponseData,ConfigUtil}
 import no.met.data.format.json.BasicJsonFormat
 import models._
 
-//$COVERAGE-OFF$ 
-
 /**
  * Creating a json representation of observation data
  */
@@ -102,4 +100,3 @@ object JsonFormat extends BasicJsonFormat {
   }
   
 }
-//$COVERAGE-ON
