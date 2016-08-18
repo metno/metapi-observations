@@ -31,6 +31,7 @@ import play.api.Play.current
 import play.api.libs.json._
 import play.api.test.Helpers._
 import com.github.nscala_time.time.Imports._
+import no.met.data.ApiConstants
 import models._
 import services.observations._
 import TestUtil._
@@ -42,46 +43,44 @@ class JsonFormatSpec extends Specification {
   val time = DateTime.parse("2015-02-01T06:00:00Z")
   val start = DateTime.now
 
-  def doc(fields: Set[Field.Field] = Field.default): JsValue = {
+  def createJsonLd(fields: Set[Field.Field] = Field.default): JsValue = {
     implicit val request = FakeRequest("GET", "test")
     val data = ObservationSeries(station, List(new Observation(time, List(new ObservedElement(Some("air_temperature"), Some(12.7), Some("degC"), Some("70000"))))))
     val output = JsonFormat.format(start, List(data))
     Json.parse(output)
   }
 
-  class Doc(fields: Set[Field.Field] = Field.default) {
-    val json = doc(fields)
-    val dataCollection = (json \ "data")(0)
-    val obsData = (dataCollection \ "dataSet")(0)
+  class CreateJsonLd(fields: Set[Field.Field] = Field.default) {
+    val json = createJsonLd(fields)
+    val dataCollection = (json \ ApiConstants.DATA_NAME)(0)
+    val obsData = (dataCollection \ "observations")(0)
     val valueList = (obsData \ "values")(0)
-    val temperature = valueList \ "air_temperature"
+    //val temperature = valueList \ "air_temperature"
   }
-
-      /*
 
   "json formatter" should {
     
 
     "create some output" in new WithApplication(TestUtil.app) {
 
-      val document = new Doc()
+      val document = new CreateJsonLd()
       import document._
 
       (json \\ "data").size must equalTo(1)
 
-      (dataCollection \ "@type").as[JsString] must equalTo(JsString("DataCollection"))
-      (dataCollection \ "source").as[JsString] must equalTo(JsString("KS180"))
-      (dataCollection \ "level").as[JsString] must equalTo(JsString("ground_level"))
-      (dataCollection \ "geometry" \ "type").as[JsString] must equalTo(JsString("Point"))
-      (dataCollection \ "geometry" \ "coordinates").as[JsValue] must equalTo(JsArray(Seq(JsNumber(9.0), JsNumber(62.3))))
+      (dataCollection \ "sourceId").as[JsString] must equalTo(JsString("SN18700"))
+      //(dataCollection \ "level").as[JsString] must equalTo(JsString("ground_level"))
+      //(dataCollection \ "geometry" \ "type").as[JsString] must equalTo(JsString("Point"))
+      //(dataCollection \ "geometry" \ "coordinates").as[JsValue] must equalTo(JsArray(Seq(JsNumber(9.0), JsNumber(62.3))))
 
-      (obsData \ "reftime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      (obsData \ "referenceTime").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
 
-      (temperature \ "value").as[JsNumber] must equalTo(JsNumber(2))
-      (temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
-      (temperature \ "unit").as[JsString] must equalTo(JsString("celsius"))
+      //(temperature \ "value").as[JsNumber] must equalTo(JsNumber(12.7))
+      //(temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
+      //(temperature \ "unit").as[JsString] must equalTo(JsString("degC"))
     }
 
+    /*
     "disable display of referencetime" in new WithApplication(TestUtil.app)  {
       val document = new Doc(Set(Field.value, Field.unit, Field.qualityCode))
       import document._
@@ -140,21 +139,19 @@ class JsonFormatSpec extends Specification {
       (temperature \ "qualityCode").as[JsString] must equalTo(JsString("70000"))
       (temperature \ "unit").validate(Reads.optionWithNull[JsValue]) must haveClass[JsError]
     }
+    */
 
     "contain standard headers" in new WithApplication(TestUtil.app)  {
-      val document = new Doc()
+      val document = new CreateJsonLd()
       import document._
 
-      (json \ "@context").as[JsString] must equalTo(JsString("https://data.met.no/schema/"))
-      (json \ "@type").as[JsString] must equalTo(JsString("Response"))
-      (json \ "@id").as[JsString] must equalTo(JsString("Observations"))
+      (json \ "@context").as[JsString] must equalTo(JsString(ApiConstants.METAPI_CONTEXT))
+      (json \ "@type").as[JsString] must equalTo(JsString("ObservationResponse"))
       (json \ "apiVersion").as[JsString] must equalTo(JsString("v0"))
-      (json \ "license").as[JsString] must equalTo(JsString("http://met.no/English/Data_Policy_and_Data_Services/"))
-      //(json \ "createdAt")
-      //(json \ "queryTime")
+      (json \ "license").as[JsString] must equalTo(JsString(ApiConstants.METAPI_LICENSE))
       (json \ "totalItemCount").as[JsNumber] must equalTo(JsNumber(1))
-      //(json \ "currentLink") must equalTo(JsString("http://localhost:9000/test")) // This is only valid if server name and stuff is left unconfigured
     }
 
-  }*/
+  }
+
 }

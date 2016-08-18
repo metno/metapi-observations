@@ -1,6 +1,6 @@
 organization := "no.met.data"
 name := """observations"""
-version := "0.4-SNAPSHOT"
+version := "0.3-SNAPSHOT"
 description := "Observations module of the metapi."
 homepage :=  Some(url(s"https://github.com/metno"))
 licenses += "GPL-2.0" -> url("https://www.gnu.org/licenses/gpl-2.0.html")
