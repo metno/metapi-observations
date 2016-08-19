@@ -34,7 +34,6 @@ import no.met.data.{ApiConstants,BasicResponseData,ConfigUtil}
 import no.met.data.format.json.BasicJsonFormat
 import models._
 
-//$COVERAGE-OFF$ 
 /**
  * Creating a json representation of Stations data
  */
@@ -46,7 +45,7 @@ object JsonTimeSeriesFormat extends BasicJsonFormat {
     (JsPath \ "fromDate").write[String] and 
     (JsPath \ "toDate").writeNullable[String] and 
     (JsPath \ "elementId").writeNullable[String] and 
-    (JsPath \ "observationTimeSpan").write[String] and 
+    (JsPath \ "observationTimespan").write[String] and 
     (JsPath \ "timeOffset").write[String]
   )(unlift(ObservationTimeSeries.unapply))
 
@@ -94,4 +93,3 @@ object JsonTimeSeriesFormat extends BasicJsonFormat {
   }
   
 }
-//$COVERAGE-ON$ 

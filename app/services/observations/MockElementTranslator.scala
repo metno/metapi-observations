@@ -27,8 +27,6 @@ package services.observations
 
 import javax.inject.Singleton
 
-//$COVERAGE-OFF$Not testing database queries
-
 /**
  * Concrete implementation of KdvhElementTranslator class, used for development and testing.
  */
@@ -58,5 +56,3 @@ class MockElementTranslator extends ElementTranslator {
     //ret getOrElse (throw new Exception("Invalid KDVH element name: " + kdvhElemName))
   }
 }
-
-// $COVERAGE-ON$

@@ -29,8 +29,6 @@ import no.met.time._
 import scala.util._
 import models.ObservationSeries
 
-//$COVERAGE-OFF$ 
-
 object Field extends Enumeration {
   type Field = Value
   val reftime, value, unit, qualityCode = Value
@@ -60,4 +58,3 @@ trait ObservationAccess {
   def observations(auth:Option[String], sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
 
 }
-//$COVERAGE-ON$ 

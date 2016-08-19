@@ -32,53 +32,32 @@ import no.met.time.TimeSpecification
 import no.met.time.TimeSpecification._
 import models._
 
-/**
- * Access to a kdvh database - interface definition
- */
 abstract class DatabaseAccess {
 
-  //@throws[Exception]("in case something went wrong")
-  //def observations(auth:Option[String], sources: Seq[Int], reftime: TimeSpecification.Range, elements: Seq[String], fields: Set[Field]): Seq[ObservationSeries]
-
-  /**
-   * Get data from the kdvh database.
-   *
-   * @param stationId id of station to query
-   * @param obstime time intervals to retrieve data for; inclusive-exclusive semantics (i.e. from <= t < to) applies to each interval
-   * @param elements list of kdvh element names
-   * @param withQuality whether to include quality codes
-   *
-   * @return A sequence of KdvhQueryResult objects, containing the requested data
+  /** Get observation data from the database
    */
   def getObservations(elemTranslator: ElementTranslator, auth: Option[String], stationId: Seq[String], obstime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[ObservationSeries]
-  /**
-   * Get time series data from the kdvh database.
-   *
-   * @param stationId id of station to query
-   * @param elements list of kdvh element names
-   *
-   * @return A sequence of KdvhQueryResult objects, containing the requested data
+  
+  /** Get time series information from the database
    */
   def getTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], stationId: Seq[String], elements: Seq[String]): Seq[ObservationTimeSeries]
 }
 
 object DatabaseAccess {
 
-  private def sanitize(element: String) {
-
-    val elem = "^[A-Za-z0-9_,]+$".r
-    element match {
-      case elem(_*) => ;
-      case _ => throw new Exception("Invalid element specification: " + element)
+  private def sanitize(parameter: String) {
+    val param = "^[A-Za-z0-9_,]+$".r
+    parameter match {
+      case param(_*) => ;
+      case _ => throw new Exception("Invalid query parameter content: " + parameter)
     }
-
   }
 
   @tailrec
-  def sanitize(elements: Traversable[String]) {
-    if (elements != Nil) {
-      sanitize(elements head)
-      sanitize(elements tail)
+  def sanitize(params: Traversable[String]) {
+    if (params != Nil) {
+      sanitize(params head)
+      sanitize(params tail)
     }
   }
 

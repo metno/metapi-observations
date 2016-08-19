@@ -36,7 +36,7 @@ import scala.language.postfixOps
 import scala.util._
 import ExecutionContext.Implicits.global
 
-//$COVERAGE-OFF$Not testing database queries
+//$COVERAGE-OFF$ Unit tests cannot cover database access code
 
 /**
  * Concrete implementation of KdvhElementTranslator class.

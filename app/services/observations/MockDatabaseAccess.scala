@@ -25,14 +25,13 @@
 
 package services.observations
 
+import play.Logger
 import com.github.nscala_time.time.Imports._
 import javax.inject.Singleton
 import scala.math.BigDecimal.int2bigDecimal
 import no.met.time.TimeSpecification
 import no.met.time.TimeSpecification._
 import models._
-
-//$COVERAGE-OFF$Not testing database queries
 
 /**
  * Concrete implementation of KdvhDatabaseAccess class, used for development and testing.
@@ -62,7 +61,7 @@ class MockDatabaseAccess extends DatabaseAccess {
     )
   )
   
-  def getObservations(elemTranslator: ElementTranslator, auth:Option[String], stationId: Seq[String], obstime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[ObservationSeries] = {
+  def getObservations(elemTranslator: ElementTranslator, auth:Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[ObservationSeries] = {
     mockDataList
     /*obsIntervals map ((obsInterval) =>
       ObservationSeries(
@@ -74,9 +73,11 @@ class MockDatabaseAccess extends DatabaseAccess {
           * */
   }
 
-    // scalastyle:off
-  val mockSourcelist = List[ObservationTimeSeries](
-    new ObservationTimeSeries("18700", Some(1), "01-FEB-37", None, Some("air_temperature"), "1M", "18UTC")
+  // scalastyle:off
+  val mockTimeSerieslist = List[ObservationTimeSeries](
+    new ObservationTimeSeries("18700", Some(1), "1937-02-01T00H00M00S", None, Some("air_temperature"), "1M", "18UTC"),
+    new ObservationTimeSeries("18700", Some(1), "1937-02-01T00H00M00S", None, Some("precipitation_amount"), "1M", "18UTC"),
+    new ObservationTimeSeries("70740", Some(2), "1974-05-29T12H00M00S", None, Some("air_temperature"), "T0H0M0S", "18UTC")
     /*
     new Station("KN18700",   "OSLO - BLINDERN",      "Norge",               Some(1492),  Some(94),  Some(59.9423),          Some(10.72),              "1941-01-01"),
     new Station("KN70740",   "STEINKJER",            "Norge",               None,        Some(10),  Some(64.02),            Some(11.5),               "1500-01-01"),
@@ -89,12 +90,12 @@ class MockDatabaseAccess extends DatabaseAccess {
   )
   // scalastyle:on
 
-  def getTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], stationIds: Seq[String], elements: Seq[String]): Seq[ObservationTimeSeries] = {
-    mockSourcelist.
-      filter(s => stationIds.length == 0 || stationIds.contains(s.sourceId)).
-      filter(s => elements.length == 0    || elements.contains(s.elementId))
+  def getTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], sources: Seq[String], elements: Seq[String]): Seq[ObservationTimeSeries] = {
+    Logger.debug(elements mkString)
+    mockTimeSerieslist.
+      filter(s => sources.length == 0 || sources.contains(s.sourceId)).
+      filter(s => elements.length == 0 || elements.contains(s.elementId.get)).
+      map (s => s.copy(sourceId = "SN" + s.sourceId))
   }
 
 }
-
-// $COVERAGE-ON$
