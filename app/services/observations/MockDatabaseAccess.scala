@@ -25,9 +25,10 @@
 
 package services.observations
 
+import javax.inject.Singleton
 import play.Logger
 import com.github.nscala_time.time.Imports._
-import javax.inject.Singleton
+import scala.language.postfixOps
 import scala.math.BigDecimal.int2bigDecimal
 import no.met.time.TimeSpecification
 import no.met.time.TimeSpecification._

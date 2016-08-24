@@ -30,8 +30,8 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import com.github.nscala_time.time.Imports._
 import java.net.URL
-import no.met.data.{ApiConstants,BasicResponseData,ConfigUtil}
-import no.met.data.format.json.BasicJsonFormat
+import no.met.data.{ApiConstants,ConfigUtil}
+import no.met.json.BasicJsonFormat
 import models._
 
 /**
@@ -39,15 +39,7 @@ import models._
  */
 object JsonTimeSeriesFormat extends BasicJsonFormat {
 
-  implicit val observationTimeSeriesWrites: Writes[ObservationTimeSeries] = (
-    (JsPath \ "sourceId").write[String] and 
-    (JsPath \ "sensorNumber").writeNullable[Int] and 
-    (JsPath \ "fromDate").write[String] and 
-    (JsPath \ "toDate").writeNullable[String] and 
-    (JsPath \ "elementId").writeNullable[String] and 
-    (JsPath \ "observationTimespan").write[String] and 
-    (JsPath \ "timeOffset").write[String]
-  )(unlift(ObservationTimeSeries.unapply))
+  implicit val observationTimeSeriesWrites = Json.writes[ObservationTimeSeries]
 
   implicit val observationTimeSeriesResponseWrites: Writes[ObservationTimeSeriesResponse] = (
     (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and 
