@@ -32,6 +32,7 @@ import play.api.libs.json._
 import play.api.test.Helpers._
 import com.github.nscala_time.time.Imports._
 import no.met.data.ApiConstants
+import no.met.geometry.Level
 import models._
 import services.observations._
 import TestUtil._
@@ -43,15 +44,15 @@ class JsonTimeSeriesFormatSpec extends Specification {
   val time = "2015-02-01T06:00:00Z"
   val start = DateTime.now
 
-  def createJsonLd(fields: Set[Field.Field] = Field.default): JsValue = {
+  def createJsonLd() : JsValue = {
     implicit val request = FakeRequest("GET", "test")
-    val data = ObservationTimeSeries(station, Some(0), time, None, Some("air_temperature"), "T0H0M0S", "PT0H0M0S")
+    val data =  ObservationTimeSeries(Some("SN18700"), Some("1937-02-01T00H00M00S"), None, Some("air_temperature"), Some("PT18H"), Some("P1D"), Some("degC"), None, Seq(Level(Some("height_above_ground"), Some(2), Some("m"), None)), Some(1), Some("A"), Some("Official") )
     val output = JsonTimeSeriesFormat.format(start, List(data))
     Json.parse(output)
   }
 
-  class CreateJsonLd(fields: Set[Field.Field] = Field.default) {
-    val json = createJsonLd(fields)
+  class CreateJsonLd() {
+    val json = createJsonLd()
     val dataCollection = (json \ ApiConstants.DATA_NAME)(0)
     val obsData = (dataCollection \ "observations")(0)
     val valueList = (obsData \ "values")(0)
@@ -66,10 +67,10 @@ class JsonTimeSeriesFormatSpec extends Specification {
 
       (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
       ((json \ ApiConstants.DATA_NAME)(0) \ "sourceId").as[JsString] must equalTo(JsString("SN18700"))
-      ((json \ ApiConstants.DATA_NAME)(0) \ "fromDate").as[JsString] must equalTo(JsString("2015-02-01T06:00:00Z"))
+      ((json \ ApiConstants.DATA_NAME)(0) \ "validFrom").as[JsString] must equalTo(JsString("1937-02-01T00H00M00S"))
       ((json \ ApiConstants.DATA_NAME)(0) \ "elementId").as[JsString] must equalTo(JsString("air_temperature"))
-      ((json \ ApiConstants.DATA_NAME)(0) \ "observationTimespan").as[JsString] must equalTo(JsString("T0H0M0S"))
-      ((json \ ApiConstants.DATA_NAME)(0) \ "timeOffset").as[JsString] must equalTo(JsString("PT0H0M0S"))
+      ((json \ ApiConstants.DATA_NAME)(0) \ "offset").as[JsString] must equalTo(JsString("PT18H"))
+      ((json \ ApiConstants.DATA_NAME)(0) \ "resultTimeInterval").as[JsString] must equalTo(JsString("P1D"))
     }
 
     "not return toDate if station is still valid" in new WithApplication(TestUtil.app) {

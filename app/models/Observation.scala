@@ -70,3 +70,5 @@ case class ObservedElement(
   @(ApiModelProperty @field)(value="The unit of measure of the observed data.", example="degC") unit: Option[String],
   @(ApiModelProperty @field)(value="The quality code of the observed data value.", example="700000") qualityCode: Option[String]
 )
+
+// Need to add codeTable

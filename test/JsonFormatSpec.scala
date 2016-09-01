@@ -50,15 +50,18 @@ class JsonFormatSpec extends Specification {
     Json.parse(output)
   }
 
+  /*
   def createJsonLd(fields: Set[Field.Field] = Field.default): JsValue = {
     implicit val request = FakeRequest("GET", "test")
     val data = ObservationSeries(station, List(new Observation(time, List(new ObservedElement(Some("air_temperature"), Some(12.7), Some("degC"), Some("70000"))))))
     val output = JsonFormat.format(start, List(data))
     Json.parse(output)
   }
+  * 
+  */
 
-  class CreateJsonLd(fields: Set[Field.Field] = Field.default) {
-    val json = createJsonLd(fields)
+  class CreateJsonLd() {
+    val json = createJsonLd()
     val dataCollection = (json \ ApiConstants.DATA_NAME)(0)
     val obsData = (dataCollection \ "observations")(0)
     val valueList = (obsData \ "values")(0)

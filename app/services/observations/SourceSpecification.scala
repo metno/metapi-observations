@@ -39,8 +39,7 @@ object SourceSpecification {
    */
   def parse(sources: String): Seq[String] = {
 
-    /**
-     * Returns the integer resulting from removing a prefix from a string.
+    /** Returns the integer resulting from removing a prefix from a string.
      * @param s Input string, expected to include the prefix.
      * @param prefix Prefix, expected to be a combination of characters from [a-z] and [A-Z].
      *   Special characters are not guaranteed to work (in particular not '(' and ')').

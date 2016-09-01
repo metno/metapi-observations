@@ -51,7 +51,6 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
       } toSet
     }
   }
-  * 
   */
 
   /**
@@ -155,8 +154,6 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     implicit request =>
 
     val start = DateTime.now(DateTimeZone.UTC)
-
-    //var fieldList = Set.empty[Field]
 
     Try {
       val auth = request.headers.get("Authorization")

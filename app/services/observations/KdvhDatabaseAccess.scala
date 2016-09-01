@@ -38,6 +38,7 @@ import scala.annotation.tailrec
 import scala.concurrent._
 import scala.language.postfixOps
 import scala.util._
+import no.met.geometry.Level
 import no.met.time.TimeSpecification
 import no.met.time.TimeSpecification._
 import models._
@@ -232,14 +233,23 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     Logger.debug("KdvhAccess.getTimeSeriesData() ...")
     
     val parser: RowParser[ObservationTimeSeries] = {
-      get[Long]("station") ~
-      get[Option[Int]]("sensor_number") ~
-      get[String]("from_date") ~
-      get[Option[String]]("to_date") ~
-      get[Option[String]]("kdvh_element") ~
-      get[String]("observation_timespan") ~
-      get[String]("time_offset") map {
-        case sourceId~sensorNr~fromDate~toDate~elementId~obsTimeSpan~timeOffset => ObservationTimeSeries(sourceId.toString, sensorNr, fromDate, toDate, elementId, obsTimeSpan, timeOffset)
+      get[Option[Long]]("sourceId") ~
+      get[Option[String]]("validFrom") ~
+      get[Option[String]]("validTo") ~
+      get[Option[String]]("elementId") ~
+      get[Option[String]]("offset") ~
+      get[Option[String]]("resultTimeInterval") ~
+      get[Option[String]]("unit") ~
+      get[Option[String]]("codeTable") ~
+      get[Option[String]]("level_type") ~
+      get[Option[Double]]("level_value") ~
+      get[Option[String]]("level_unit") ~
+      get[Option[String]]("level_codetable") ~
+      get[Option[Int]]("sensorNumber") ~
+      get[Option[String]]("performanceCategory") ~
+      get[Option[String]]("status") map {
+        case sourceId~validFrom~validTo~elementId~offset~resultTimeInterval~unit~codeTable~level_type~level_value~level_unit~level_codetable~sensorNumber~performanceCategory~status =>
+          ObservationTimeSeries(Some(sourceId.toString), validFrom, validTo, elementId, offset, resultTimeInterval, unit, codeTable, Seq(Level(level_type, level_value, level_unit, level_codetable)), sensorNumber, performanceCategory, status)
       }
     }
     
@@ -257,13 +267,21 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       }     
       val query = s"""
           |SELECT
-            |STNR AS station,
-            |SENSOR_NR AS sensor_number,
-            |TO_CHAR(FROMDATE, '$dateFormat') AS from_date,
-            |TO_CHAR(TODATE, '$dateFormat') AS to_date,
-            |ELEM_CODE AS kdvh_element,
-            |COALESCE(OBSERVATION_TIMESPAN, 'T0H0M0S') AS observation_timespan,
-            |TIME_OFFSET AS time_offset
+            |STNR AS sourceId,
+            |TO_CHAR(FROMDATE, '$dateFormat') AS validFrom,
+            |TO_CHAR(TODATE, '$dateFormat') AS validTo,
+            |ELEM_CODE AS elemendId,
+            |TIME_OFFSET AS offset,
+            |RESULT_TIMEINTERVAL AS resultTimeInterval,
+            |UNIT AS unit,
+            |CODE_TABLE_NAME AS codeTable,
+            |'height_above_ground' AS level_type,
+            |SENSOR_LEVEL AS level_value,
+            |LEVEL_UNIT AS level_unit,
+            |NULL AS level_codetable,
+            |SENSOR_NR AS sensorNumber,
+            |PERFORMANCE_CATEGORY AS performanceCategory,
+            |'Authoritative' AS status
           |FROM
             |T_ELEM_MAP_TIMESERIES
           |WHERE
@@ -276,7 +294,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       
       val result = SQL(query).as( parser * )
       result.map ( 
-        row => row.copy(sourceId = "SN" + row.sourceId, elementId = elemTranslator.toApiElemName(auth, row.elementId.get))
+        row => row.copy(sourceId = Some("SN" + row.sourceId.get), elementId = elemTranslator.toApiElemName(auth, row.elementId.get))
       )
     }
   }
