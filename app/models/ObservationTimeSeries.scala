@@ -59,7 +59,7 @@ case class ObservationTimeSeries(
   @(ApiModelProperty @field)(value="The datetime from which data exists in this timeseries.", example="1974-05-29") validFrom: Option[String],
   @(ApiModelProperty @field)(value="The datetime to which data exists in this timeseries. Null if data is still being added to the time series.", example="1977-05-16") validTo: Option[String],
   @(ApiModelProperty @field)(value="The MET API id of the element observed.", example="air_temperature") elementId: Option[String],
-  @(ApiModelProperty @field)(value="The offset from the validFrom datetime. Add the offset to validFrom to get the referenceTime of the first observation in the timeseries.", example="P18H") offset: Option[String],
+  @(ApiModelProperty @field)(value="The offset from the validFrom datetime. Add the offset to validFrom to get the referenceTime of the first observation in the timeseries.", example="P18H") timeOffset: Option[String],
   @(ApiModelProperty @field)(value="The interval between results in the timeseries. Given the reference time of an observation, add the resultTimeInterval to get the next observation in the timeseries.", example="P24H") resultTimeInterval: Option[String],
   @(ApiModelProperty @field)(value="The unit of measure of the observed data. *code* if the unit is described using a code table.", example="degC") unit: Option[String],
   @(ApiModelProperty @field)(value="If the unit is a *code*, the codetable that describes the codes used.", example="beaufort_scale") codeTable: Option[String],

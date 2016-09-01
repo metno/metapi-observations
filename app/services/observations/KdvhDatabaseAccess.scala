@@ -237,7 +237,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       get[Option[String]]("validFrom") ~
       get[Option[String]]("validTo") ~
       get[Option[String]]("elementId") ~
-      get[Option[String]]("offset") ~
+      get[Option[String]]("time_offset") ~
       get[Option[String]]("resultTimeInterval") ~
       get[Option[String]]("unit") ~
       get[Option[String]]("codeTable") ~
@@ -248,8 +248,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       get[Option[Int]]("sensorNumber") ~
       get[Option[String]]("performanceCategory") ~
       get[Option[String]]("status") map {
-        case sourceId~validFrom~validTo~elementId~offset~resultTimeInterval~unit~codeTable~level_type~level_value~level_unit~level_codetable~sensorNumber~performanceCategory~status =>
-          ObservationTimeSeries(Some(sourceId.toString), validFrom, validTo, elementId, offset, resultTimeInterval, unit, codeTable, Seq(Level(level_type, level_value, level_unit, level_codetable)), sensorNumber, performanceCategory, status)
+        case sourceId~validFrom~validTo~elementId~timeOffset~resultTimeInterval~unit~codeTable~level_type~level_value~level_unit~level_codetable~sensorNumber~performanceCategory~status =>
+          ObservationTimeSeries(Some(sourceId.toString), validFrom, validTo, elementId, timeOffset, resultTimeInterval, unit, codeTable, Seq(Level(level_type, level_value, level_unit, level_codetable)), sensorNumber, performanceCategory, status)
       }
     }
     
@@ -271,7 +271,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
             |TO_CHAR(FROMDATE, '$dateFormat') AS validFrom,
             |TO_CHAR(TODATE, '$dateFormat') AS validTo,
             |ELEM_CODE AS elemendId,
-            |TIME_OFFSET AS offset,
+            |TIME_OFFSET AS time_offset,
             |RESULT_TIMEINTERVAL AS resultTimeInterval,
             |UNIT AS unit,
             |CODE_TABLE_NAME AS codeTable,
