@@ -233,7 +233,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     Logger.debug("KdvhAccess.getTimeSeriesData() ...")
     
     val parser: RowParser[ObservationTimeSeries] = {
-      get[Option[Long]]("sourceId") ~
+      get[Option[String]]("sourceId") ~
       get[Option[String]]("validFrom") ~
       get[Option[String]]("validTo") ~
       get[Option[String]]("elementId") ~
@@ -249,7 +249,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       get[Option[String]]("performanceCategory") ~
       get[Option[String]]("status") map {
         case sourceId~validFrom~validTo~elementId~timeOffset~resultTimeInterval~unit~codeTable~level_type~level_value~level_unit~level_codetable~sensorNumber~performanceCategory~status =>
-          ObservationTimeSeries(Some(sourceId.toString), validFrom, validTo, elementId, timeOffset, resultTimeInterval, unit, codeTable, Seq(Level(level_type, level_value, level_unit, level_codetable)), sensorNumber, performanceCategory, status)
+          ObservationTimeSeries(sourceId, validFrom, validTo, elementId, timeOffset, resultTimeInterval, unit, codeTable, Seq(Level(level_type, level_value, level_unit, level_codetable)), sensorNumber, performanceCategory, status)
       }
     }
     
@@ -267,7 +267,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       }     
       val query = s"""
           |SELECT
-            |STNR AS sourceId,
+            |'SN' || STNR::TEXT AS  sourceId,
             |TO_CHAR(FROMDATE, '$dateFormat') AS validFrom,
             |TO_CHAR(TODATE, '$dateFormat') AS validTo,
             |ELEM_CODE AS elementId,
@@ -294,7 +294,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       
       val result = SQL(query).as( parser * )
       result.map ( 
-        row => row.copy(sourceId = Some("SN" + row.sourceId.get), elementId = elemTranslator.toApiElemName(auth, row.elementId.get))
+        row => row.copy(elementId = elemTranslator.toApiElemName(auth, row.elementId.get))
       )
     }
   }
