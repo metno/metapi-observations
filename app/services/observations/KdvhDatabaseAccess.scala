@@ -249,7 +249,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       get[Option[String]]("performanceCategory") ~
       get[Option[String]]("status") map {
         case sourceId~validFrom~validTo~elementId~timeOffset~resultTimeInterval~unit~codeTable~level_type~level_value~level_unit~level_codetable~sensorNumber~performanceCategory~status =>
-          ObservationTimeSeries(sourceId, validFrom, validTo, elementId, timeOffset, resultTimeInterval, unit, codeTable, Seq(Level(level_type, level_value, level_unit, level_codetable)), sensorNumber, performanceCategory, status)
+          ObservationTimeSeries(sourceId, validFrom, validTo, elementId, timeOffset, resultTimeInterval, unit, codeTable, Seq(Level(level_type, level_value, level_unit, level_codetable)), sensorNumber, performanceCategory, status, None)
       }
     }
     
@@ -294,7 +294,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       
       val result = SQL(query).as( parser * )
       result.map ( 
-        row => row.copy(elementId = elemTranslator.toApiElemName(auth, row.elementId.get))
+        row => row.copy(elementId = elemTranslator.toApiElemName(auth, row.elementId.get), 
+                        uri = Some("https://data.met.no/observations/timeSeries/v0.jsonld?sources="+row.sourceId.get+"&referencetime="+row.validFrom.get+"/"+row.validTo.getOrElse("2999-12-31T23:59:59Z")+"&elements="+elemTranslator.toApiElemName(auth, row.elementId.get)))
       )
     }
   }

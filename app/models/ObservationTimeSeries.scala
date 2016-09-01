@@ -66,5 +66,6 @@ case class ObservationTimeSeries(
   @(ApiModelProperty @field)(value="The level of the observed data.") level: Seq[Level],
   @(ApiModelProperty @field)(value="The sensor number.") sensorNumber: Option[Int],
   @(ApiModelProperty @field)(value="The performance category.") performanceCategory: Option[String],
-  @(ApiModelProperty @field)(value="The status of the timeseries.") status: Option[String]
+  @(ApiModelProperty @field)(value="The status of the timeseries.") status: Option[String],
+  @(ApiModelProperty @field)(value="The URI that can be used to retrieve this timeseries.") uri: Option[String]
 )

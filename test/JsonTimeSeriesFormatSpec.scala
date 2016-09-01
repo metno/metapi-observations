@@ -46,7 +46,7 @@ class JsonTimeSeriesFormatSpec extends Specification {
 
   def createJsonLd() : JsValue = {
     implicit val request = FakeRequest("GET", "test")
-    val data =  ObservationTimeSeries(Some("SN18700"), Some("1937-02-01T00H00M00S"), None, Some("air_temperature"), Some("PT18H"), Some("P1D"), Some("degC"), None, Seq(Level(Some("height_above_ground"), Some(2), Some("m"), None)), Some(1), Some("A"), Some("Official") )
+    val data =  ObservationTimeSeries(Some("SN18700"), Some("1937-02-01T00H00M00S"), None, Some("air_temperature"), Some("PT18H"), Some("P1D"), Some("degC"), None, Seq(Level(Some("height_above_ground"), Some(2), Some("m"), None)), Some(1), Some("A"), Some("Official"), None )
     val output = JsonTimeSeriesFormat.format(start, List(data))
     Json.parse(output)
   }
