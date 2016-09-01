@@ -237,7 +237,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       get[Option[String]]("validFrom") ~
       get[Option[String]]("validTo") ~
       get[Option[String]]("elementId") ~
-      get[Option[String]]("time_offset") ~
+      get[Option[String]]("timeOffset") ~
       get[Option[String]]("resultTimeInterval") ~
       get[Option[String]]("unit") ~
       get[Option[String]]("codeTable") ~
@@ -270,8 +270,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
             |STNR AS sourceId,
             |TO_CHAR(FROMDATE, '$dateFormat') AS validFrom,
             |TO_CHAR(TODATE, '$dateFormat') AS validTo,
-            |ELEM_CODE AS elemendId,
-            |TIME_OFFSET AS time_offset,
+            |ELEM_CODE AS elementId,
+            |TIME_OFFSET AS timeOffset,
             |RESULT_TIMEINTERVAL AS resultTimeInterval,
             |UNIT AS unit,
             |CODE_TABLE_NAME AS codeTable,
@@ -289,7 +289,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
             |$stationQ AND
             |$elemQ
           |ORDER BY
-            |station, kdvh_element, from_date""".stripMargin
+            |sourceId, validFrom, elementId, timeOffset, resultTimeInterval""".stripMargin
       Logger.debug(query)
       
       val result = SQL(query).as( parser * )
