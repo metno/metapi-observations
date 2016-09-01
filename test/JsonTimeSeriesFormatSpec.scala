@@ -69,7 +69,7 @@ class JsonTimeSeriesFormatSpec extends Specification {
       ((json \ ApiConstants.DATA_NAME)(0) \ "sourceId").as[JsString] must equalTo(JsString("SN18700"))
       ((json \ ApiConstants.DATA_NAME)(0) \ "validFrom").as[JsString] must equalTo(JsString("1937-02-01T00H00M00S"))
       ((json \ ApiConstants.DATA_NAME)(0) \ "elementId").as[JsString] must equalTo(JsString("air_temperature"))
-      ((json \ ApiConstants.DATA_NAME)(0) \ "offset").as[JsString] must equalTo(JsString("PT18H"))
+      ((json \ ApiConstants.DATA_NAME)(0) \ "timeOffset").as[JsString] must equalTo(JsString("PT18H"))
       ((json \ ApiConstants.DATA_NAME)(0) \ "resultTimeInterval").as[JsString] must equalTo(JsString("P1D"))
     }
 
