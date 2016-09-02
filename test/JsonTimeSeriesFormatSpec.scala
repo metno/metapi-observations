@@ -63,7 +63,7 @@ class JsonTimeSeriesFormatSpec extends Specification {
 
     "create correctly structured output" in new WithApplication(TestUtil.app) {
 
-      val json = createJsonLd()
+      val json = createJsonLd()  
 
       (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
       ((json \ ApiConstants.DATA_NAME)(0) \ "sourceId").as[JsString] must equalTo(JsString("SN18700"))

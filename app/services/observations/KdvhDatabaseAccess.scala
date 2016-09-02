@@ -295,7 +295,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       val result = SQL(query).as( parser * )
       result.map ( 
         row => row.copy(elementId = elemTranslator.toApiElemName(auth, row.elementId.get), 
-                        uri = Some("https://data.met.no/observations/timeSeries/v0.jsonld?sources="+row.sourceId.get+"&referencetime="+row.validFrom.get+"/"+row.validTo.getOrElse("2999-12-31T23:59:59Z")+"&elements="+elemTranslator.toApiElemName(auth, row.elementId.get)))
+                        uri = Some(ConfigUtil.urlStart + "observations/v0.jsonld?sources="+row.sourceId.get+"&referencetime="+row.validFrom.get+"/"+row.validTo.getOrElse("2999-12-31T23:59:59Z")+"&elements="+elemTranslator.toApiElemName(auth, row.elementId.get).get))
       )
     }
   }
