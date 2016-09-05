@@ -57,7 +57,7 @@ class KdvhElementTranslator extends ElementTranslator {
 
     val result = Await.result(response, 5 seconds)
     result.status match {
-      case OK => ((result.json \ "data")(0) \ "legacyMetNoConvention" \ "elemCodes").get.as[String]  split ","
+      case OK => ((result.json \ "data")(0) \ "legacyMetNoConvention" \ "elemCodes").get.as[Seq[String]]
       case _  => throw new Exception("Failed to translate to KDVH element name: " + apiElemName)
     }
 
