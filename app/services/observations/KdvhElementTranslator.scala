@@ -49,15 +49,15 @@ class KdvhElementTranslator extends ElementTranslator {
     // if auth is null, it is because authorization is off
     val authStr = auth.getOrElse("Basic invalid-id")
     val baseUrl = current.configuration.getString("met.elements.baseUrl") getOrElse "https://data.met.no/elements/v0.jsonld"
-    Logger.debug("Getting (" + authStr + ") - " + baseUrl + "?id=" + apiElemName)
+    Logger.debug("Getting (" + authStr + ") - " + baseUrl + "?ids=" + apiElemName)
     val request: WSRequest = WS.url(baseUrl)
                                .withHeaders("Authorization" -> authStr)
-                               .withQueryString("id" -> apiElemName)
+                               .withQueryString("ids" -> apiElemName)
     val response: Future[WSResponse] = request.get()
 
     val result = Await.result(response, 5 seconds)
     result.status match {
-      case OK => ((result.json \ "data")(0) \ "legacyMetNoConvention" \ "elemCode").get.as[String]  split ","
+      case OK => ((result.json \ "data")(0) \ "legacyMetNoConvention" \ "elemCodes").get.as[String]  split ","
       case _  => throw new Exception("Failed to translate to KDVH element name: " + apiElemName)
     }
 
@@ -69,7 +69,7 @@ class KdvhElementTranslator extends ElementTranslator {
     val baseUrl = current.configuration.getString("met.elements.baseUrl") getOrElse "https://data.met.no/elements/v0.jsonld"
     val request: WSRequest = WS.url(baseUrl)
                                .withHeaders("Authorization" -> authStr)
-                               .withQueryString("legacyElemCode" -> kdvhElemName)
+                               .withQueryString("legacyElemCodes" -> kdvhElemName)
     val response: Future[WSResponse] = request.get()
 
     val result = Await.result(response, 5 seconds)
