@@ -38,6 +38,7 @@ import scala.annotation.tailrec
 import scala.concurrent._
 import scala.language.postfixOps
 import scala.util._
+import no.met.data.ConfigUtil
 import no.met.geometry.Level
 import no.met.time.TimeSpecification
 import no.met.time.TimeSpecification._
