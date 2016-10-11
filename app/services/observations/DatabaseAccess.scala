@@ -36,11 +36,25 @@ abstract class DatabaseAccess {
 
   /** Get observation data from the database
    */
-  def getObservations(elemTranslator: ElementTranslator, auth: Option[String], stationId: Seq[String], obstime: TimeSpecification.Range, elements: Seq[String], withQuality: Boolean): Seq[ObservationSeries]
+  def getObservations(
+      elemTranslator: ElementTranslator,
+      auth: Option[String],
+      stationId: Seq[String],
+      obstime: TimeSpecification.Range,
+      elements: Seq[String],
+      fields: Set[String]
+    ): List[ObservationSeries]
   
   /** Get time series information from the database
    */
-  def getTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], stationId: Seq[String], elements: Seq[String]): Seq[ObservationTimeSeries]
+  def getAvailableTimeSeries(
+      elemTranslator: ElementTranslator,
+      auth: Option[String],
+      stationId: Seq[String],
+      elements: Seq[String],
+      fields: Set[String]
+    ): List[ObservationTimeSeries]
+
 }
 
 object DatabaseAccess {

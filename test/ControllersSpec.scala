@@ -48,7 +48,7 @@ class ControllersSpec extends Specification {
 
     // Basically just testing that the mock modules are being bound (i.e., not throwing a 500)
     "should bind the modules" in new WithApplication(TestUtil.app) {
-      val response = route(FakeRequest(GET, "/v0.jsonld?source=KN18700&time=2015-05-01T00:00:00&element=air_temperature")).get
+      val response = route(FakeRequest(GET, "/v0.jsonld?source=SN18700&time=2015-05-01T00:00:00&element=air_temperature")).get
 
       status(response) must equalTo(BAD_REQUEST)
     }
@@ -69,7 +69,7 @@ class ControllersSpec extends Specification {
     }
     
     "return a result for timeSeries with correct query parameters" in new WithApplication(TestUtil.app) {
-      val response = route(FakeRequest(GET, "/timeSeries/v0.jsonld?sources=SN18700&elements=air_temperature")).get
+      val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld?sources=SN18700&elements=air_temperature")).get
 
       status(response) must equalTo(OK)
 
@@ -78,7 +78,7 @@ class ControllersSpec extends Specification {
     }
 
     "return all time series with no query parameters" in new WithApplication(TestUtil.app) {
-      val response = route(FakeRequest(GET, "/timeSeries/v0.jsonld")).get
+      val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld")).get
 
       status(response) must equalTo(OK)
 
@@ -87,13 +87,13 @@ class ControllersSpec extends Specification {
     }
     
     "return no data found for time series not in test set " in new WithApplication(TestUtil.app) {
-      val response = route(FakeRequest(GET, "/timeSeries/v0.jsonld?sources=SN18701&elements=air_temperature")).get
+      val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld?sources=SN18701&elements=air_temperature")).get
 
       status(response) must equalTo(NOT_FOUND)
     }
     
     "return bad request if the return format is incorrect" in new WithApplication(TestUtil.app) {
-      val response = route(FakeRequest(GET, "/timeSeries/v0.txt?sources=SN18700&elements=air_temperature")).get
+      val response = route(FakeRequest(GET, "/availableTimeSeries/v0.txt?sources=SN18700&elements=air_temperature")).get
 
       status(response) must equalTo(BAD_REQUEST)
     }

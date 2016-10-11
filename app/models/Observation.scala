@@ -25,12 +25,17 @@
 
 package models
 
+import anorm.Row
 import com.github.nscala_time.time.Imports._
 import io.swagger.annotations._
 import java.net.URL
 import scala.annotation.meta.field
 import scala.collection._
+import scala.util._
 import no.met.data.{ApiConstants,BasicResponse}
+import no.met.geometry._
+
+// scalastyle:off line.size.limit
 
 @ApiModel(description="Data response for observation data.")
 case class ObservationResponse(
@@ -49,26 +54,110 @@ case class ObservationResponse(
   @(ApiModelProperty @field)(value=ApiConstants.CURRENT_LINK, example=ApiConstants.CURRENT_LINK_EXAMPLE) currentLink: URL,
   @(ApiModelProperty @field)(value=ApiConstants.DATA) data: Seq[ObservationSeries]
 ) 
-extends BasicResponse( context, responseType, apiVersion, license, createdAt, queryTime, currentItemCount, itemsPerPage, offset, totalItemCount, nextLink, previousLink, currentLink)
+extends BasicResponse( context, responseType, apiVersion, license, createdAt, queryTime, currentItemCount, itemsPerPage, offset, totalItemCount,
+    nextLink, previousLink, currentLink)
 
 @ApiModel(description="Observations at the defined source.")
 case class ObservationSeries(
-  @(ApiModelProperty @field)(value="The sourceId at which this series of values were observed.", example="SN18700") sourceId: String,
-  @(ApiModelProperty @field)(value="The values observed at this source.") observations: Seq[Observation]
+  @(ApiModelProperty @field)(value="The sourceId at which this series of values were observed.", example="SN18700") sourceId: Option[String],
+  @(ApiModelProperty @field)(value="Spatial location of the data when it was observed (if known).") geometry: Option[Point],
+  @(ApiModelProperty @field)(value="The level of the data when it was observed (if known).", example="74") levels: Option[Seq[Level]],
+  @(ApiModelProperty @field)(value="The time at which the observation was generated/observed.", dataType="String", example="2012-12-24T11:00:00Z") referenceTime: Option[String],
+  @(ApiModelProperty @field)(value="The values observed at this source. This is a map of the form [ElementId (as a String), Observation]") observations: Option[Seq[Observation]]
 )
 
 @ApiModel(description="Observations at the specified time.")
 case class Observation(
-  @(ApiModelProperty @field)(value="The time at which the observation was generated/observed.", dataType="String", example="2012-12-24T11:00:00Z") referenceTime: DateTime,
-  @(ApiModelProperty @field)(value="The values observed at this time.") values: Seq[ObservedElement]
-)
-
-@ApiModel(description="Observed elements for the specified source and reference time.")
-case class ObservedElement(
-  @(ApiModelProperty @field)(value="The MET API id of the element observed.", example="air_temperature") elementId: Option[String],
-  @(ApiModelProperty @field)(value="The value of the observed data.", example="12.7") value: Option[Double],
+  @(ApiModelProperty @field)(value="The id of the element being observed.", example="air_temperature") elementId: Option[String],
+  @(ApiModelProperty @field)(value="The numerical value of the observation.", example="12.7") value: Option[Double],
   @(ApiModelProperty @field)(value="The unit of measure of the observed data.", example="degC") unit: Option[String],
-  @(ApiModelProperty @field)(value="The quality code of the observed data value.", example="700000") qualityCode: Option[String]
+  @(ApiModelProperty @field)(value="If the unit is a *code*, the codetable that describes the codes used.", example="beaufort_scale") codeTable: Option[String],
+  @(ApiModelProperty @field)(value="The performance category of the source when the value was observed.", example="A") performanceCategory: Option[String],
+  @(ApiModelProperty @field)(value="The exposure category of the source when the value was observed.", example="1") exposureCategory: Option[String],
+  @(ApiModelProperty @field)(value="The quality control flag of the observed data value.", example="700000") qualityCode: Option[Int],
+  @(ApiModelProperty @field)(value="The data version of the data value, if one exists (**Note: Currently not available for any observation data).", example="3") dataVersion: Option[Int]
 )
 
-// Need to add codeTable
+// Observation Meta information retrieved from KDVH
+case class ObservationMeta(
+    kdvhStNr: Int,
+    kdvhSensorNr: Int,
+    levels: Option[Seq[Level]],
+    kdvhElemCode: String,
+    elementId: String,
+    elementUnit: Option[String],
+    elementCode: Option[String],
+    valueTable: String,
+    flagTable: Option[String],
+    performanceCategory: String,
+    exposureCategory: String
+)
+
+// Observation Values from KDVH query
+case class ObservedData(value: Option[Double], quality: Option[String] = None)
+
+// $COVERAGE-OFF$ Mapping of the database query to a Seq of Observation Series
+object ObservationSeries {
+
+  def apply(row: Row, obsMeta:List[ObservationMeta], kdvhElements: Set[String]): List[ObservationSeries] = {
+    val r = row.asMap
+    kdvhElements.foldLeft(List.empty[ObservationSeries]) {
+      (l, elem) =>
+        val stationId = row[Int]("stationid")
+        val refTime = row[String]("referencetime")
+        val meta = obsMeta.find( m => m.kdvhStNr == stationId && m.kdvhElemCode == elem)
+        val sensor = if (meta.isEmpty) 0 else meta.get.kdvhSensorNr
+        val value = row[Option[Double]](elem)
+        val quality = Try { row[Option[String]](s"${elem}_flag") } match {
+          case Success(flag) => flag
+          case Failure(x) => None
+        }
+        if (!value.isEmpty) {
+          l :+ new ObservationSeries(
+                Some("SN" + stationId + ":" + sensor ),
+                None,
+                meta.get.levels,
+                Some(refTime),
+                Some(Seq(Observation(Some(meta.get.elementId),
+                                     value,
+                                     meta.get.elementUnit,
+                                     meta.get.elementCode,
+                                     Some(meta.get.performanceCategory),
+                                     Some(meta.get.exposureCategory),
+                                     qualityCode(quality),
+                                     None))))
+        } else {
+          l
+        }
+    }
+  }
+
+  // scalastyle:off magic.number
+  // scalastyle:off cyclomatic.complexity
+  def qualityCode(qualityFlag: Option[String]): Option[Int] = {
+    if (qualityFlag.isEmpty) {
+      None // ??
+    }
+    else {
+      (qualityFlag.get.charAt(2),qualityFlag.get.charAt(3)) match {
+        case (c:Char, '1') => Some(1) // OK
+        case (c:Char, '2') => Some(1) // OK
+        case (c:Char, '3') => Some(6) // Uncertain
+        case (c:Char, '4') => Some(6) // Uncertain
+        case (c:Char, '5') => Some(1) // OK
+        case (c:Char, '6') => Some(1) // OK
+        case ('0', c:Char) => Some(0) // OK
+        case ('9', c:Char) => Some(2) // Uncertain
+        case ('1', '0')    => Some(5) // Uncertain
+        case ('2', '0')    => Some(5) // Very uncertain
+        case ('3', '0')    => Some(7) // Erroneous
+        case ('3', '8')    => Some(7) // Erroneous
+        case _             => None // Undefined
+      }
+    }
+  }
+
+}
+//$COVERAGE-ON$
+
+// scalastyle:on

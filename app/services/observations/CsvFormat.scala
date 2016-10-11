@@ -25,9 +25,7 @@
 
 package services.observations
 
-import models.Observation
-import models.ObservationSeries
-import models.ObservedElement
+import models._
 
 //$COVERAGE-OFF$ Throw-away code
 
@@ -36,6 +34,7 @@ import models.ObservedElement
  */
 object CsvFormat {
 
+  /*
   /**
    * Create a header, describing the given data
    */
@@ -57,6 +56,8 @@ object CsvFormat {
   def format(d: Seq[ObservationSeries]): String = {
     d.foldLeft(header(d(0)) + "\n")(_ + _)
   }
+  *
+  */
 }
 
 //$COVERAGE-ON$

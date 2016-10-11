@@ -83,5 +83,5 @@ object JsonTimeSeriesFormat extends BasicJsonFormat {
                                         timeSeries)
     Json.prettyPrint(Json.toJson(response))
   }
-  
+
 }

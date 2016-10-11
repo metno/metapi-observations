@@ -27,10 +27,12 @@ package services.observations
 
 import play.api.mvc._
 import play.api.libs.json._
+import play.api.libs.json.Json._
 import play.api.libs.functional.syntax._
 import com.github.nscala_time.time.Imports._
 import java.net.URL
 import no.met.data.{ApiConstants,ConfigUtil}
+import no.met.geometry._
 import no.met.json.BasicJsonFormat
 import models._
 
@@ -39,11 +41,25 @@ import models._
  */
 object JsonFormat extends BasicJsonFormat {
 
-  implicit val observedElementWrites = Json.writes[ObservedElement]
-
   implicit val observationWrites = Json.writes[Observation]
 
-  implicit val observationSeriesWrites = Json.writes[ObservationSeries]
+  /*
+  implicit val observationsWrites: Writes[Map[String, Observation]] = new Writes[Map[String, Observation]] {
+    def writes(map: Map[String, Observation]): JsValue =
+        Json.obj(map.map{case (s, o) =>
+            val ret: (String, JsValueWrapper) = s -> toJson(o)
+            ret
+        }.toSeq:_*)
+  }
+  */
+
+  implicit val observationSeriesWrites: Writes[ObservationSeries] = (
+    (JsPath \ "sourceId").writeNullable[String] and
+    (JsPath \ "geometry").writeNullable[Point] and
+    (JsPath \ "levels").writeNullable[Seq[Level]] and
+    (JsPath \ "referenceTime").writeNullable[String] and
+    (JsPath \ "observations").writeNullable[Seq[Observation]]
+  )(unlift(ObservationSeries.unapply))
 
   implicit val observationResponseWrites: Writes[ObservationResponse] = (
     (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and 
