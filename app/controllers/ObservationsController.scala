@@ -58,6 +58,12 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieves using the <a href=docs#/elements>elements</a> resource.",
               required = true)
               elements: String,
+    @ApiParam(value = "Return only data with the specified performance category. Enter a comma-separated list to specify multiple performance categories. Leave the query parameter empty to retrieve data regardless of its performance category.",
+        required = false)
+        performancecategory: Option[String],
+    @ApiParam(value = "Return only data with the specified exposure category. Enter a comma-separated list to specify multiple exposure categories. Leave the query parameter empty to retrieve data regardless of exposure category.",
+        required = false)
+        exposurecategory: Option[String],
     @ApiParam(value = "Fields to access",
               required = false,
               allowableValues = "value,unit,qualityCode")
@@ -73,9 +79,17 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     val sourceDef = SourceSpecification.parse(Some(sources))
     val timeDef = TimeSpecification.parse(referencetime).get
     val elementDef = elements split "," map (_ trim)
+    val perfList : Seq[String] = performancecategory match {
+      case Some(performancecategory) => performancecategory split "," map (_ trim)
+      case _ => Seq()
+    }
+    val expList : Seq[String] = exposurecategory match {
+      case Some(exposurecategory) => exposurecategory split "," map (_ trim)
+      case _ => Seq()
+    }
     val fieldDef = FieldSpecification.parse(fields)
     Try {
-      dataAccess.getObservations(elemTranslator, auth, sourceDef, timeDef, elementDef, fieldDef);
+      dataAccess.getObservations(auth, sourceDef, timeDef, elementDef, perfList, expList, fieldDef);
     } match {
       case Success(data) =>
         if (data isEmpty) {
@@ -105,9 +119,18 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/docs#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
         required = false)
         sources: Option[String],
+    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=references.html#time_specification>Time Specifications</a> for documentation and examples.",
+        required = true)
+        referencetime: Option[String],
     @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieves using the <a href=\"https://data.met.no/docs#/elements\">elements</a> resource. Leave the query parameter empty to retrieve timeseries for all available elements.",
         required = false)
         elements: Option[String],
+    @ApiParam(value = "Return only time series with the specified performance category. Enter a comma-separated list to specify multiple performance categories. Leave the query parameter empty to retrieve timeseries for all available performance categories.",
+        required = false)
+        performancecategory: Option[String],
+    @ApiParam(value = "Return only time series with the specified exposure category. Enter a comma-separated list to specify multiple exposure categories. Leave the query parameter empty to retrieve timeseries for all available exposure categories.",
+        required = false)
+        exposurecategory: Option[String],
     @ApiParam(value = "Fields to access",
         required = false)
         fields: Option[String],
@@ -120,13 +143,22 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     val start = DateTime.now(DateTimeZone.UTC)
     val auth = request.headers.get("Authorization")
     val sourceList = SourceSpecification.parse(sources)
+    val timeDef = if (referencetime.isEmpty) None else Some(TimeSpecification.parse(referencetime.get).get)
     val elementList : Seq[String] = elements match {
       case Some(elements) => elements split "," map (_ trim)
       case _ => Seq()
     }
+    val perfList : Seq[String] = performancecategory match {
+      case Some(performancecategory) => performancecategory split "," map (_ trim)
+      case _ => Seq()
+    }
+    val expList : Seq[String] = exposurecategory match {
+      case Some(exposurecategory) => exposurecategory split "," map (_ trim)
+      case _ => Seq()
+    }
     val fieldDef = FieldSpecification.parse(fields)
     Try {
-      dataAccess.getAvailableTimeSeries(elemTranslator, auth, sourceList, elementList, fieldDef)
+      dataAccess.getAvailableTimeSeries(auth, sourceList, timeDef, elementList, perfList, expList, fieldDef)
     } match {
       case Success(data) =>
         if (data isEmpty) {

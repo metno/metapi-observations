@@ -62,6 +62,24 @@ class ControllersSpec extends Specification {
       (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
     }
 
+    "return a result for observations with performanceCategory" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/v0.jsonld?sources=SN18700&referencetime=2007-06-01T13:00:00.000Z&elements=air_temperature&performancecategory=A")).get
+
+      status(response) must equalTo(OK)
+
+      val json = Json.parse(contentAsString(response))
+      (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
+    }
+
+    "return a result for observations with exposureCategory" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/v0.jsonld?sources=SN18700&referencetime=2007-06-01T13:00:00.000Z&elements=air_temperature&exposurecategory=1")).get
+
+      status(response) must equalTo(OK)
+
+      val json = Json.parse(contentAsString(response))
+      (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
+    }
+    
     "return bad request if the return format is incorrect" in new WithApplication(TestUtil.app) {
       val response = route(FakeRequest(GET, "/v0.txt?sources=SN18700&referencetime=2007-06-01T13:00:00.000Z&elements=air_temperature")).get
 
@@ -77,6 +95,24 @@ class ControllersSpec extends Specification {
       (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
     }
 
+    "return a result for timeSeries with performancecategory" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld?sources=SN18700&elements=air_temperature&performancecategory=A")).get
+
+      status(response) must equalTo(OK)
+
+      val json = Json.parse(contentAsString(response))
+      (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
+    }
+
+    "return a result for timeSeries with exposurecategory" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld?sources=SN18700&elements=air_temperature&exposurecategory=1")).get
+
+      status(response) must equalTo(OK)
+
+      val json = Json.parse(contentAsString(response))
+      (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
+    }
+    
     "return all time series with no query parameters" in new WithApplication(TestUtil.app) {
       val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld")).get
 

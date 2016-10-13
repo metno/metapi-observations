@@ -62,7 +62,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
    */
   private val dateFormat = "YYYY-MM-DD\"T\"HH24:MI:SS.\"000Z\""
 
-  private def getTimeSeries(sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String]) : List[ObservationMeta] = {
+  private def getTimeSeries(sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String]) : List[ObservationMeta] = {
     
     val parser: RowParser[ObservationMeta] = {
       get[Int]("kdvhStNr") ~
@@ -97,6 +97,18 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       val elementList = elements reduce (_ + "', '" + _)
       s"element_id IN ('${elementList}')"
     }
+    val perfCatQ = if (perfCat.isEmpty) {
+      "TRUE"
+    } else {
+      val perfCatList = perfCat reduce (_ + "', '" + _)
+      s"performance_category IN ('${perfCatList}')"
+    }
+    val expCatQ = if (expCat.isEmpty) {
+      "TRUE"
+    } else {
+      val expCatList = expCat reduce (_ + "', '" + _)
+      s"exposure_category IN ('${expCatList}')"
+    }
 
     val query = s"""
       |SELECT
@@ -122,7 +134,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         |table_name IS NOT NULL AND
         |$sourcesQ AND
         |$refTimeQ AND
-        |$elementsQ
+        |$elementsQ AND
+        |$perfCatQ AND
+        |$expCatQ
       |GROUP BY
         |stnr, sensor_nr, sensor_level, level_unit, elem_code, element_id, unit, code_table_name, table_name,
         |flag_table_name, performance_category, exposure_category
@@ -241,10 +255,11 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     val data = groups.map { case (k,v) => ObservationSeries(k._1, k._2, k._3, k._4, Some(v.map(_.observations.getOrElse(Seq[Observation]())).flatten.toSeq ) ) } toList
 
     data.sortBy( r => (r.sourceId, r.referenceTime) )
+    
   }
 
-  override def getObservations(elemTranslator: ElementTranslator, auth: Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], fields: Set[String]): List[ObservationSeries] = {
-    val timeSeries = getTimeSeries(sources, refTime, elements)
+  override def getObservations(auth: Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String], fields: Set[String]): List[ObservationSeries] = {
+    val timeSeries = getTimeSeries(sources, refTime, elements, perfCat, expCat)
     val tables = timeSeries.groupBy(_.valueTable)
     getDataFromTimeSeries( tables, refTime )
   }
@@ -252,7 +267,14 @@ class KdvhDatabaseAccess extends DatabaseAccess {
   /**
    * Retrieve time series data from KDVH/KDVH-proxy 
    */
-  override def getAvailableTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], sources: Seq[String], elements: Seq[String], fields: Set[String]): List[ObservationTimeSeries] = {
+  override def getAvailableTimeSeries(
+      auth: Option[String],
+      sources: Seq[String],
+      obsTime: Option[TimeSpecification.Range],
+      elements: Seq[String],
+      perfCategory: Seq[String],
+      expCategory: Seq[String],
+      fields: Set[String]): List[ObservationTimeSeries] = {
     
     val parser: RowParser[ObservationTimeSeries] = {
       get[Option[String]]("sourceId") ~
@@ -277,18 +299,11 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       }
     }
 
-    val sourcesQ = if (sources.isEmpty) {
-      "TRUE"
-    } else {
-      val sourceStr = SourceSpecification.sql(sources, "stnr", Some("(sensor_nr-1)"))
-      s"($sourceStr)"
-    }
-    val elementsQ = if (elements.isEmpty) {
-      "TRUE"
-    } else {
-      val elementList = elements reduce (_ + "', '" + _)
-      s"element_id IN ('${elementList}')"
-    }
+    val sourcesQ = timeSeriesSources(sources)
+    val obsTimeQ = timeSeriesObsTime(obsTime)
+    val elementsQ = timeSeriesElements(elements)
+    val perfCatQ = timeSeriesPerformanceCategory(perfCategory)
+    val expCatQ = timeSeriesExposureCategory(expCategory)
 
     val query = s"""
       |SELECT
@@ -316,7 +331,10 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         |element_id IS NOT NULL AND
         |table_name IS NOT NULL AND
         |$sourcesQ AND
-        |$elementsQ
+        |$obsTimeQ AND
+        |$elementsQ AND
+        |$perfCatQ AND
+        |$expCatQ
       |ORDER BY
         |stnr, sensor_level, elem_code, element_id;""".stripMargin
 
@@ -325,11 +343,65 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     DB.withConnection("kdvh") { implicit conn =>
       val result = SQL(query).as( parser * )
       result.map ( 
-        row => row.copy(uri = Some(ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + row.sourceId.get + "&referencetime=" + row.validFrom.get + "/" + row.validTo.getOrElse("2999-12-31T23:59:59Z") + "&elements=" + row.elementId.get))
+        row => row.copy(uri = Some(
+            ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + row.sourceId.get 
+              + "&referencetime=" + row.validFrom.get + "/" + row.validTo.getOrElse("2999-12-31T23:59:59Z") 
+              + "&elements=" + row.elementId.get
+              + (if (!perfCategory.isEmpty) "&performancecategory=" + perfCategory.mkString(",") else "") 
+              + (if (!expCategory.isEmpty) "&exposurecategory=" + expCategory.mkString(",") else "")
+          )
+        )
       )
     }
   }
+  
+  private def timeSeriesSources(sources: Seq[String]) = {
+    if (sources.isEmpty) {
+      "TRUE"
+    } else {
+      val sourceStr = SourceSpecification.sql(sources, "stnr", Some("(sensor_nr-1)"))
+      s"($sourceStr)"
+    }
+  }
+  
+  private def timeSeriesObsTime(obsTime: Option[TimeSpecification.Range]) = {
+    if (obsTime.isEmpty) {
+      "TRUE"
+    } else {
+      val timeStart = TimeSpecification.min(obsTime.get).toString
+      val timeEnd = TimeSpecification.max(obsTime.get).toString
+      s"fromdate <= TO_DATE('$timeStart', '$dateFormat') AND (todate IS NULL OR todate >= TO_DATE('$timeEnd', '$dateFormat'))"
+    }
+  }
 
+  private def timeSeriesElements(elements: Seq[String]) = {
+    if (elements.isEmpty) {
+      "TRUE"
+    } else {
+      val elementList = elements reduce (_ + "', '" + _)
+      s"element_id IN ('${elementList}')"
+    }
+  }
+
+    private def timeSeriesPerformanceCategory(perfCat: Seq[String]) = {
+    if (perfCat.isEmpty) {
+      "TRUE"
+    } else {
+      val perfCatList = perfCat reduce (_ + "', '" + _)
+      s"performance_category IN ('${perfCatList}')"
+    }
+  }
+
+  private def timeSeriesExposureCategory(expCat: Seq[String]) = {
+    if (expCat.isEmpty) {
+      "TRUE"
+    } else {
+      val expCatList = expCat reduce (_ + "', '" + _)
+      s"exposure_category IN ('${expCatList}')"
+    }
+  }
+
+  
 }
 
 // scalastyle:on

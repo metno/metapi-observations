@@ -3,6 +3,6 @@
 # ~~~~
 
 # MET API
-GET     /v0.:format                 controllers.ObservationsController.observations(sources: String, referencetime: String, elements: String, fields: Option[String], format: String)
+GET     /v0.:format                 controllers.ObservationsController.observations(sources: String, referencetime: String, elements: String, performancecategory: Option[String], exposurecategory: Option[String], fields: Option[String], format: String)
 
-GET     /availableTimeSeries/v0.:format      controllers.ObservationsController.timeSeries(sources: Option[String], elements: Option[String], fields: Option[String], format: String)
+GET     /availableTimeSeries/v0.:format      controllers.ObservationsController.timeSeries(sources: Option[String], referencetime: Option[String], elements: Option[String], performancecategory: Option[String], exposurecategory: Option[String], fields: Option[String], format: String)

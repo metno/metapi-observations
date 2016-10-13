@@ -64,7 +64,14 @@ class MockDatabaseAccess extends DatabaseAccess {
     )
   )
   
-  def getObservations(elemTranslator: ElementTranslator, auth:Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], fields: Set[String]): List[ObservationSeries] = {
+  def getObservations(
+      auth:Option[String],
+      sources: Seq[String],
+      refTime: TimeSpecification.Range,
+      elements: Seq[String],
+      perfCategory: Seq[String],
+      expCategory: Seq[String],
+    fields: Set[String]): List[ObservationSeries] = {
     mockDataList.
       filter(s => sources.length == 0 || sources.contains(s.sourceId.get)).
       filter(s => elements.length == 0 || elements.contains((s.observations.get)(0).elementId.get))
@@ -87,7 +94,14 @@ class MockDatabaseAccess extends DatabaseAccess {
   )
   // scalastyle:on
 
-  def getAvailableTimeSeries(elemTranslator: ElementTranslator, auth: Option[String], sources: Seq[String], elements: Seq[String], fields: Set[String]): List[ObservationTimeSeries] = {
+  def getAvailableTimeSeries(
+      auth: Option[String],
+      sources: Seq[String],
+      obsTime: Option[TimeSpecification.Range],
+      elements: Seq[String],
+      perfCategory: Seq[String],
+      expCategory: Seq[String],
+      fields: Set[String]): List[ObservationTimeSeries] = {
     mockTimeSerieslist.
       filter(s => sources.length == 0 || sources.contains(s.sourceId.get)).
       filter(s => elements.length == 0 || elements.contains(s.elementId.get))
