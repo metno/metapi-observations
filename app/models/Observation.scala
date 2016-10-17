@@ -61,7 +61,7 @@ extends BasicResponse( context, responseType, apiVersion, license, createdAt, qu
 case class ObservationSeries(
   @(ApiModelProperty @field)(value="The sourceId at which this series of values were observed.", example="SN18700") sourceId: Option[String],
   @(ApiModelProperty @field)(value="Spatial location of the data when it was observed (if known).") geometry: Option[Point],
-  @(ApiModelProperty @field)(value="The level of the data when it was observed (if known).", example="74") levels: Option[Seq[Level]],
+  @(ApiModelProperty @field)(value="The level of the data when it was observed (if known).", example="[ \"levelType\": \"height_above_ground\", \"value\": 0, \"unit\": \"m\" } ]") levels: Option[Seq[Level]],
   @(ApiModelProperty @field)(value="The time at which the observation was generated/observed.", dataType="String", example="2012-12-24T11:00:00Z") referenceTime: Option[String],
   @(ApiModelProperty @field)(value="The values observed at this source. This is a map of the form [ElementId (as a String), Observation]") observations: Option[Seq[Observation]]
 )
@@ -74,7 +74,7 @@ case class Observation(
   @(ApiModelProperty @field)(value="If the unit is a *code*, the codetable that describes the codes used.", example="beaufort_scale") codeTable: Option[String],
   @(ApiModelProperty @field)(value="The performance category of the source when the value was observed.", example="A") performanceCategory: Option[String],
   @(ApiModelProperty @field)(value="The exposure category of the source when the value was observed.", example="1") exposureCategory: Option[String],
-  @(ApiModelProperty @field)(value="The quality control flag of the observed data value.", example="700000") qualityCode: Option[Int],
+  @(ApiModelProperty @field)(value="The quality control flag of the observed data value.", example="0") qualityCode: Option[Int],
   @(ApiModelProperty @field)(value="The data version of the data value, if one exists (**Note: Currently not available for any observation data).", example="3") dataVersion: Option[Int]
 )
 
