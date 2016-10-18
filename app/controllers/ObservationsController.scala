@@ -31,7 +31,7 @@ import io.swagger.annotations._
 import javax.inject.Inject
 import scala.language.postfixOps
 import util._
-import no.met.data.{SourceSpecification, FieldSpecification}
+import no.met.data._
 import no.met.time.TimeSpecification
 import services.observations._
 
@@ -93,15 +93,18 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     } match {
       case Success(data) =>
         if (data isEmpty) {
-          NotFound("No data found")
+          Error.error(NOT_FOUND, Some("No data found"), None, start)
         } else {
           format.toLowerCase() match {
             //case "csv"    => Ok(data.foldLeft(CsvFormat header data(0))(_ + '\n' + CsvFormat.format(_))) as "text/csv"
             case "jsonld" => Ok(JsonFormat.format(start, data)) as "application/vnd.no.met.data.observations-v0+json"
-            case x        => BadRequest(s"Invalid output format: $x")
+            case x        => Error.error(BAD_REQUEST, Some(s"Invalid output format: $x"), Some("Supported output formats: jsonld"), start)
           }
         }
-      case Failure(x) => BadRequest(x getLocalizedMessage)
+      case Failure(x: BadRequestException) =>
+        Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
+      case Failure(x) =>
+        Error.error(BAD_REQUEST, Some(x getLocalizedMessage), None, start)
     }
   }
 
@@ -162,14 +165,17 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     } match {
       case Success(data) =>
         if (data isEmpty) {
-          NotFound("No data found")
+          Error.error(NOT_FOUND, Some("No data found"), None, start)
         } else {
           format.toLowerCase() match {
             case "jsonld" => Ok(JsonTimeSeriesFormat.format(start, data)) as "application/vnd.no.met.data.observations.timeseries-v0+json"
-            case x        => BadRequest(s"Invalid output format: $x")
+            case x        => Error.error(BAD_REQUEST, Some(s"Invalid output format: $x"), Some("Supported output formats: jsonld"), start)
           }
         }
-      case Failure(x) => BadRequest(x getLocalizedMessage)
+      case Failure(x: BadRequestException) =>
+        Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
+      case Failure(x) =>
+        Error.error(BAD_REQUEST, Some(x getLocalizedMessage), None, start)
     }
   }
 
