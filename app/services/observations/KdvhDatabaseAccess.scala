@@ -370,7 +370,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     } else {
       val timeStart = TimeSpecification.min(obsTime.get).toString
       val timeEnd = TimeSpecification.max(obsTime.get).toString
-      s"fromdate <= TO_DATE('$timeStart', '$dateFormat') AND (todate IS NULL OR todate >= TO_DATE('$timeEnd', '$dateFormat'))"
+      s"(fromdate < TO_DATE('$timeEnd', '$dateFormat') AND (todate IS NULL OR todate > TO_DATE('$timeStart', '$dateFormat')))"
     }
   }
 
