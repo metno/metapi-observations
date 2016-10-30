@@ -79,13 +79,13 @@ class ControllersSpec extends Specification {
       val json = Json.parse(contentAsString(response))
       (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
     }
-    
+
     "return bad request if the return format is incorrect" in new WithApplication(TestUtil.app) {
       val response = route(FakeRequest(GET, "/v0.txt?sources=SN18700&referencetime=2007-06-01T13:00:00.000Z&elements=air_temperature")).get
 
       status(response) must equalTo(BAD_REQUEST)
     }
-    
+
     "return a result for timeSeries with correct query parameters" in new WithApplication(TestUtil.app) {
       val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld?sources=SN18700&elements=air_temperature")).get
 
@@ -112,7 +112,7 @@ class ControllersSpec extends Specification {
       val json = Json.parse(contentAsString(response))
       (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
     }
-    
+
     "return all time series with no query parameters" in new WithApplication(TestUtil.app) {
       val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld")).get
 
@@ -121,19 +121,31 @@ class ControllersSpec extends Specification {
       val json = Json.parse(contentAsString(response))
       (json \ "data").as[JsArray].value.size must equalTo(3)
     }
-    
+
     "return no data found for time series not in test set " in new WithApplication(TestUtil.app) {
       val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld?sources=SN18701&elements=air_temperature")).get
 
       status(response) must equalTo(NOT_FOUND)
     }
-    
+
     "return bad request if the return format is incorrect" in new WithApplication(TestUtil.app) {
       val response = route(FakeRequest(GET, "/availableTimeSeries/v0.txt?sources=SN18700&elements=air_temperature")).get
 
       status(response) must equalTo(BAD_REQUEST)
     }
-    
+
+    "return error if unsupported fields are specified" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/v0.jsonld?foo=bar")).get
+
+      status(response) must equalTo(BAD_REQUEST)
+    }
+
+    "return error if unsupported fields are specified for time series" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/availableTimeSeries/v0.jsonld?foo=bar")).get
+
+      status(response) must equalTo(BAD_REQUEST)
+    }
+
   }
 
 }

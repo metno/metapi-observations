@@ -89,6 +89,9 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     }
     val fieldDef = FieldSpecification.parse(fields)
     Try {
+      // ensure that the query string contains supported fields only
+      QueryStringUtil.ensureSubset(Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "fields"), request.queryString.keySet)
+
       dataAccess.getObservations(auth, sourceDef, timeDef, elementDef, perfList, expList, fieldDef);
     } match {
       case Success(data) =>
@@ -161,6 +164,9 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     }
     val fieldDef = FieldSpecification.parse(fields)
     Try {
+      // ensure that the query string contains supported fields only
+      QueryStringUtil.ensureSubset(Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "fields"), request.queryString.keySet)
+
       dataAccess.getAvailableTimeSeries(auth, sourceList, timeDef, elementList, perfList, expList, fieldDef)
     } match {
       case Success(data) =>
