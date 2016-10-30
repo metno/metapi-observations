@@ -52,7 +52,7 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=docs#/sources>sources</a> resource.",
               required = true)
               sources: String,
-    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=references.html#time_specification>Time Specifications</a> for documentation and examples.",
+    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=reference#time_specification>Time Specifications</a> for documentation and examples.",
               required = true)
               referencetime: String,
     @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieves using the <a href=docs#/elements>elements</a> resource.",
@@ -122,7 +122,7 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/docs#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
         required = false)
         sources: Option[String],
-    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=references.html#time_specification>Time Specifications</a> for documentation and examples.",
+    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=reference#time_specification>Time Specifications</a> for documentation and examples.",
         required = true)
         referencetime: Option[String],
     @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieves using the <a href=\"https://data.met.no/docs#/elements\">elements</a> resource. Leave the query parameter empty to retrieve timeseries for all available elements.",
