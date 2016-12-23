@@ -33,7 +33,9 @@ import scala.math.BigDecimal.int2bigDecimal
 import no.met.geometry.{Level, Point}
 import no.met.time.TimeSpecification
 import no.met.time.TimeSpecification._
+import no.met.data.ObsValue
 import models._
+
 
 /**
  * Concrete implementation of KdvhDatabaseAccess class, used for development and testing.
@@ -52,7 +54,7 @@ class MockDatabaseAccess extends DatabaseAccess {
         Some("2007-06-01T13:00:00.000Z"),
         Some(List(new Observation(
             Some("air_temperature"),
-            Some(12.7),
+            Some(ObsValue(12.7)),
             Some("degC"),
             None,
             Some("1"),
@@ -63,7 +65,7 @@ class MockDatabaseAccess extends DatabaseAccess {
       )
     )
   )
-  
+
   def getObservations(
       auth:Option[String],
       sources: Seq[String],

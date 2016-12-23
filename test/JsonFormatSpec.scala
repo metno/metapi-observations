@@ -31,7 +31,7 @@ import play.api.Play.current
 import play.api.libs.json._
 import play.api.test.Helpers._
 import com.github.nscala_time.time.Imports._
-import no.met.data.ApiConstants
+import no.met.data.{ApiConstants, ObsValue}
 import models._
 import services.observations._
 import TestUtil._
@@ -45,7 +45,9 @@ class JsonFormatSpec extends Specification {
 
   def createJsonLd(): JsValue = {
     implicit val request = FakeRequest("GET", "test")
-    val data = ObservationSeries(Some(station), None, None, Some("2015-02-01T06:00:00Z"), Some(List(new Observation(Some("air_temperature"), Some(12.7), Some("degC"), None, Some("1"), Some("A"), Some(0), None))))
+    val data = ObservationSeries(
+      Some(station), None, None, Some("2015-02-01T06:00:00Z"), Some(List(new Observation(Some("air_temperature"),
+        Some(ObsValue(12.7)), Some("degC"), None, Some("1"), Some("A"), Some(0), None))))
     val output = JsonFormat.format(start, List(data))
     Json.parse(output)
   }
@@ -59,7 +61,7 @@ class JsonFormatSpec extends Specification {
   }
 
   "json formatter" should {
-    
+
 
     "create correctly structured output" in new WithApplication(TestUtil.app) {
 

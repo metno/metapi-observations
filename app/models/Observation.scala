@@ -25,15 +25,18 @@
 
 package models
 
-import anorm.Row
+import anorm.{Row, Column, MetaDataItem}
+
+
 import com.github.nscala_time.time.Imports._
 import io.swagger.annotations._
 import java.net.URL
 import scala.annotation.meta.field
 import scala.collection._
 import scala.util._
-import no.met.data.{ApiConstants,BasicResponse}
+import no.met.data.{ApiConstants, BasicResponse, ObsValue}
 import no.met.geometry._
+import java.sql.Timestamp
 
 // scalastyle:off line.size.limit
 
@@ -53,7 +56,7 @@ case class ObservationResponse(
   @(ApiModelProperty @field)(value=ApiConstants.PREVIOUS_LINK, example=ApiConstants.PREVIOUS_LINK_EXAMPLE) previousLink: Option[URL],
   @(ApiModelProperty @field)(value=ApiConstants.CURRENT_LINK, example=ApiConstants.CURRENT_LINK_EXAMPLE) currentLink: URL,
   @(ApiModelProperty @field)(value=ApiConstants.DATA) data: Seq[ObservationSeries]
-) 
+)
 extends BasicResponse( context, responseType, apiVersion, license, createdAt, queryTime, currentItemCount, itemsPerPage, offset, totalItemCount,
     nextLink, previousLink, currentLink)
 
@@ -69,7 +72,7 @@ case class ObservationSeries(
 @ApiModel(description="Observations at the specified time.")
 case class Observation(
   @(ApiModelProperty @field)(value="The id of the element being observed.", example="air_temperature") elementId: Option[String],
-  @(ApiModelProperty @field)(value="The numerical value of the observation.", example="12.7") value: Option[Double],
+  @(ApiModelProperty @field)(value="The value of the observation.", example="12.7") value: Option[ObsValue],
   @(ApiModelProperty @field)(value="The unit of measure of the observed data.", example="degC") unit: Option[String],
   @(ApiModelProperty @field)(value="If the unit is a *code*, the codetable that describes the codes used.", example="beaufort_scale") codeTable: Option[String],
   @(ApiModelProperty @field)(value="The performance category of the source when the value was observed.", example="A") performanceCategory: Option[String],
@@ -94,20 +97,26 @@ case class ObservationMeta(
 )
 
 // Observation Values from KDVH query
-case class ObservedData(value: Option[Double], quality: Option[String] = None)
+case class ObservedData(value: Option[ObsValue], quality: Option[String] = None)
 
 // $COVERAGE-OFF$ Mapping of the database query to a Seq of Observation Series
 object ObservationSeries {
 
+  implicit def columnToObsValue: Column[ObsValue] =
+    Column.nonNull1 { (value, meta) =>
+      val MetaDataItem(qualified, nullable, clazz) = meta
+      ObsValue.toObsValue(value, qualified)
+    }
+
+
   def apply(row: Row, obsMeta:List[ObservationMeta], kdvhElements: Set[String]): List[ObservationSeries] = {
-    val r = row.asMap
     kdvhElements.foldLeft(List.empty[ObservationSeries]) {
       (l, elem) =>
         val stationId = row[Int]("stationid")
         val refTime = row[String]("referencetime")
         val meta = obsMeta.find( m => m.kdvhStNr == stationId && m.kdvhElemCode == elem)
         val sensor = if (meta.isEmpty) 0 else meta.get.kdvhSensorNr
-        val value = row[Option[Double]](elem)
+        val value = row[Option[ObsValue]](elem)
         val quality = Try { row[Option[String]](s"${elem}_flag") } match {
           case Success(flag) => flag
           case Failure(x) => None
