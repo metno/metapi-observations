@@ -342,7 +342,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
 
     DB.withConnection("kdvh") { implicit conn =>
       val result = SQL(query).as( parser * )
-      result.map ( 
+      result.map (
         row => row.copy(uri = Some(
             ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + row.sourceId.get 
               + "&referencetime=" + row.validFrom.get + "/" + row.validTo.getOrElse("2999-12-31T23:59:59Z") 

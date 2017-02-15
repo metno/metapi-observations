@@ -37,6 +37,7 @@ import scala.util._
 import no.met.data.{ApiConstants, BasicResponse, ObsValue}
 import no.met.geometry._
 import java.sql.Timestamp
+import services.observations.QualityInformationCalculations
 
 // scalastyle:off line.size.limit
 
@@ -133,36 +134,14 @@ object ObservationSeries {
                                      meta.get.elementCode,
                                      Some(meta.get.performanceCategory),
                                      Some(meta.get.exposureCategory),
-                                     qualityCode(quality),
+                                     quality match {
+                                      case Some(q) => QualityInformationCalculations.qualityCode(q)
+                                      case None => None
+                                     },
                                      None))))
         } else {
           l
         }
-    }
-  }
-
-  // scalastyle:off magic.number
-  // scalastyle:off cyclomatic.complexity
-  def qualityCode(qualityFlag: Option[String]): Option[Int] = {
-    if (qualityFlag.isEmpty) {
-      None // ??
-    }
-    else {
-      (qualityFlag.get.charAt(2),qualityFlag.get.charAt(3)) match {
-        case (c:Char, '1') => Some(1) // OK
-        case (c:Char, '2') => Some(1) // OK
-        case (c:Char, '3') => Some(6) // Uncertain
-        case (c:Char, '4') => Some(6) // Uncertain
-        case (c:Char, '5') => Some(1) // OK
-        case (c:Char, '6') => Some(1) // OK
-        case ('0', c:Char) => Some(0) // OK
-        case ('9', c:Char) => Some(2) // Uncertain
-        case ('1', '0')    => Some(5) // Uncertain
-        case ('2', '0')    => Some(5) // Very uncertain
-        case ('3', '0')    => Some(7) // Erroneous
-        case ('3', '8')    => Some(7) // Erroneous
-        case _             => None // Undefined
-      }
     }
   }
 
