@@ -76,7 +76,7 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     implicit request =>
     val start = DateTime.now(DateTimeZone.UTC)
     val auth = request.headers.get("Authorization")
-    val sourceDef = SourceSpecification.parse(Some(sources))
+    val sourceDef = SourceSpecification(Some(sources)).stationNumbers
     val timeDef = TimeSpecification.parse(referencetime).get
     val elementDef = elements split "," map (_ trim)
     val perfList : Seq[String] = performancecategory match {
@@ -148,7 +148,7 @@ class ObservationsController @Inject()(dataAccess: DatabaseAccess, elemTranslato
     implicit request =>
     val start = DateTime.now(DateTimeZone.UTC)
     val auth = request.headers.get("Authorization")
-    val sourceList = SourceSpecification.parse(sources)
+    val sourceList = SourceSpecification(sources).stationNumbers
     val timeDef = if (referencetime.isEmpty) None else Some(TimeSpecification.parse(referencetime.get).get)
     val elementList : Seq[String] = elements match {
       case Some(elements) => elements split "," map (_ trim)

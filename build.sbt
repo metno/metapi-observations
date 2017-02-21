@@ -22,12 +22,12 @@ libraryDependencies ++= Seq(
   cache,
   evolutions,
   ws,
- "com.typesafe.play" %% "anorm" % "2.4.0",
- "org.postgresql" % "postgresql" % "9.4-1201-jdbc41",
- "com.github.nscala-time" %% "nscala-time" % "2.14.0",
- "io.swagger" %% "swagger-play2" % "1.5.2",
- "no.met.data" %% "util" % "0.3-SNAPSHOT",
- "no.met.data" %% "auth" % "0.3-SNAPSHOT",
+  "com.typesafe.play" %% "anorm" % "2.4.0",
+  "org.postgresql" % "postgresql" % "9.4-1201-jdbc41",
+  "com.github.nscala-time" %% "nscala-time" % "2.14.0",
+  "io.swagger" %% "swagger-play2" % "1.5.2",
+  "no.met.data" %% "util" % "0.3-SNAPSHOT",
+  "no.met.data" %% "auth" % "0.3-SNAPSHOT",
   specs2 % Test
 )
 
