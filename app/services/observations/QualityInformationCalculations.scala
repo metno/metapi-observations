@@ -35,18 +35,19 @@ import play.Logger
 import scala.util._
 import models.UserQualityInformation
 import models.SingleQualityFlag
-import models.QualityFlagInformation
-import models.QualityFlagInformation
+import models.DetailedQualityFlagInformation
+import models.DetailedQualityFlagInformation
 import scala.collection.SortedMap
 import no.met.data.FieldSpecification
 import no.met.data.BadRequestException
 import scala.language.postfixOps
+import models.FullQualityFlagInformation
 
 object QualityInformationCalculations {
 
   private val flagSize = 5
 
-  def getAllInterpretations(language: String): Iterable[QualityFlagInformation] = {
+  def getAllDetailedInterpretations(language: String): Iterable[DetailedQualityFlagInformation] = {
     val parser = int("useinfo_id") ~ str("useinfo_name") ~ int("useinfo_flag") ~ str("description") map {
       case useinfo_id ~ name ~ flag ~ desc => (useinfo_id, name, flag, desc)
     }
@@ -59,11 +60,22 @@ object QualityInformationCalculations {
         "language" -> databaseLanguageIdentifier(language)).as(parser *)
 
       SortedMap(v.groupBy(x => (x._1, x._2)).toSeq: _*).map { item =>
-        QualityFlagInformation(item._1._2, item._2.map { flagValue =>
+        DetailedQualityFlagInformation(item._1._2, item._2.map { flagValue =>
           SingleQualityFlag(flagValue._3, flagValue._4)
         })
       }
     }
+  }
+
+  def getAllInterpretations(language: String, fields: FieldSpecification): FullQualityFlagInformation = {
+    FullQualityFlagInformation(
+        fields("summarized") { () =>
+          getAllQualityTexts(language)
+        },
+        fields("details"){ () =>
+          getAllDetailedInterpretations(language)
+        }
+        )
   }
 
   def getDetailedQualityInformation(flag: String, language: String): scala.collection.immutable.IndexedSeq[TextualQualityInformation] = {
@@ -152,6 +164,19 @@ object QualityInformationCalculations {
       case Failure(x) => throw new Exception(flag + ": No such flag")
     }
   }
+
+  def getAllQualityTexts(language: String): Iterable[UserQualityInformation] = {
+    val parser = int("flag_level") ~ str("flag_text") ~ str("flag_description") map {
+      case value ~ shortMeaninig ~ meaning => UserQualityInformation(value, shortMeaninig, meaning)
+    }
+    DB.withConnection("quality") { implicit c =>
+      SQL("""SELECT flag_level, flag_text, flag_description
+              | FROM t_kdvh_user_flag
+              | WHERE language={language}""".stripMargin).on(
+        "language" -> databaseLanguageIdentifier(language)).as(parser *)
+    }
+  }
+
 
   /**
    * Translate language identifiers, since database uses other names.

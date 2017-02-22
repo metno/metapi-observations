@@ -148,4 +148,42 @@ class ControllersSpec extends Specification {
 
   }
 
+  "quality service" should {
+    "provide all data" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/availableQualityCodes/v0.jsonld")).get
+      status(response) must equalTo(OK)
+    }
+
+    "provide information about a single quality flag" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/quality/v0.jsonld?flags=70000")).get
+      status(response) must equalTo(OK)
+    }
+
+    "give error on invalid quality flag" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/quality/v0.jsonld?flags=70000af")).get
+      status(response) must equalTo(BAD_REQUEST)
+    }
+
+    "support en-US"  in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/quality/v0.jsonld?flags=70000&lang=en-US")).get
+      status(response) must equalTo(OK)
+    }
+
+    "support nb-NO"  in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/quality/v0.jsonld?flags=70000&lang=nb-NO")).get
+      status(response) must equalTo(OK)
+    }
+
+    "support nn-NO"  in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/quality/v0.jsonld?flags=70000&lang=nn-NO")).get
+      status(response) must equalTo(OK)
+    }
+
+    "give en-US on error" in new WithApplication(TestUtil.app) {
+      val response = route(FakeRequest(GET, "/quality/v0.jsonld?flags=70000&lang=INVALID")).get
+      status(response) must equalTo(OK)
+    }
+
+  }
+
 }

@@ -36,10 +36,13 @@ import no.met.geometry._
 import no.met.json.BasicJsonFormat
 import models._
 
-object JsonQualityFlagInformationFormat extends BasicJsonFormat {
+object FullQualityFlagInformationFormat extends BasicJsonFormat {
 
+  implicit val userQualityInformationWrites = Json.writes[UserQualityInformation]
   implicit val singleQualityFlagWrites = Json.writes[SingleQualityFlag]
-  implicit val qualityFlagInformationWrites = Json.writes[QualityFlagInformation]
+  implicit val qualityFlagInformationWrites = Json.writes[DetailedQualityFlagInformation]
+  implicit val fullQualityFlagInformationWrites = Json.writes[FullQualityFlagInformation]
+
 
   implicit val observationResponseWrites: Writes[QualityFlagInformationResponse] = (
     (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and
@@ -55,10 +58,10 @@ object JsonQualityFlagInformationFormat extends BasicJsonFormat {
     (JsPath \ ApiConstants.NEXT_LINK_NAME).writeNullable[URL] and
     (JsPath \ ApiConstants.PREVIOUS_LINK_NAME).writeNullable[URL] and
     (JsPath \ ApiConstants.CURRENT_LINK_NAME).write[URL] and
-    (JsPath \ ApiConstants.DATA_NAME).write[Iterable[QualityFlagInformation]])(unlift(QualityFlagInformationResponse.unapply))
+    (JsPath \ ApiConstants.DATA_NAME).write[FullQualityFlagInformation])(unlift(QualityFlagInformationResponse.unapply))
 
 
-  def format[A](start: DateTime, quality: Iterable[QualityFlagInformation])(implicit request: Request[A]): String = {
+  def format[A](start: DateTime, quality: FullQualityFlagInformation)(implicit request: Request[A]): String = {
     val size = 1
     val duration = new Duration(DateTime.now.getMillis() - start.getMillis())
     val response = new QualityFlagInformationResponse(new URL(ApiConstants.METAPI_CONTEXT),

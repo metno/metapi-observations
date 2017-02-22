@@ -183,7 +183,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def quality(
     @ApiParam(value = "The quality flag combination you want information about. Normally, you should get this from an observations call.",
-      required = true) flags: String,
+      required = true) flag: String,
     @ApiParam(value = "Fields to access",
       required = false,
       allowableValues = "summarized,flag,details") fields: Option[String],
@@ -204,7 +204,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
         // ensure that the query string contains supported fields only
         QueryStringUtil.ensureSubset(Set("flags", "lang", "fields"), request.queryString.keySet)
 
-        QualityInformationCalculations.getInterpretation(flags, fieldDef, lang.getOrElse("en-US"))
+        QualityInformationCalculations.getInterpretation(flag, fieldDef, lang.getOrElse("en-US"))
       } match {
         case Success(dataOption) =>
           dataOption match {
@@ -238,6 +238,9 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
       allowableValues = "en-US,nb-NO,nn-NO",
       defaultValue = "en-US",
       required = false) lang: Option[String],
+    @ApiParam(value = "Fields to access",
+      required = false,
+      allowableValues = "summarized,details") fields: Option[String],
     @ApiParam(value = "The output format of the result.",
       required = true,
       allowableValues = "jsonld",
@@ -246,17 +249,13 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
       val start = DateTime.now(DateTimeZone.UTC)
       Try {
         // ensure that the query string contains supported fields only
-        QueryStringUtil.ensureSubset(Set("lang"), request.queryString.keySet)
-        QualityInformationCalculations.getAllInterpretations(lang.getOrElse("en-US"))
+        QueryStringUtil.ensureSubset(Set("lang", "fields"), request.queryString.keySet)
+        QualityInformationCalculations.getAllInterpretations(lang.getOrElse("en-US"), FieldSpecification(fields))
       } match {
-        case Success(dataList) =>
-          if (dataList.isEmpty) {
-            Error.error(NOT_FOUND, Some("No data found"), None, start)
-          } else {
-            format.toLowerCase() match {
-              case "jsonld" => Ok(JsonQualityFlagInformationFormat.format(start, dataList)) as "application/vnd.no.met.data.observations.timeseries-v0+json"
-              case x => Error.error(BAD_REQUEST, Some(s"Invalid output format: $x"), Some("Supported output formats: jsonld"), start)
-            }
+        case Success(data) =>
+          format.toLowerCase() match {
+            case "jsonld" => Ok(FullQualityFlagInformationFormat.format(start, data)) as "application/vnd.no.met.data.observations.timeseries-v0+json"
+            case x => Error.error(BAD_REQUEST, Some(s"Invalid output format: $x"), Some("Supported output formats: jsonld"), start)
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)

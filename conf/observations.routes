@@ -9,4 +9,4 @@ GET     /availableTimeSeries/v0.:format      controllers.ObservationsController.
 
 GET     /quality/v0.:format   controllers.ObservationsController.quality(flags: String, fields: Option[String], lang: Option[String], format: String)
 
-GET     /availableQualityCodes/v0.:format   controllers.ObservationsController.availableQualityCodes(lang: Option[String], format: String)
+GET     /availableQualityCodes/v0.:format   controllers.ObservationsController.availableQualityCodes(lang: Option[String], fields: Option[String], format: String)

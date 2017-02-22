@@ -42,7 +42,7 @@ object JsonQualityFormat extends BasicJsonFormat {
   implicit val userQualityWrites = Json.writes[UserQualityInformation]
   implicit val qualityWrites = Json.writes[QualityInformation]
   implicit val singleQualityFlagWrites = Json.writes[SingleQualityFlag]
-  implicit val qualityFlagInformationWrites = Json.writes[QualityFlagInformation]
+  implicit val qualityFlagInformationWrites = Json.writes[DetailedQualityFlagInformation]
 
   implicit val observationResponseWrites: Writes[QualityInformationResponse] = (
     (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and

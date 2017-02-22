@@ -47,9 +47,14 @@ case class SingleQualityFlag(
   @(ApiModelProperty @field)(value = "value", example = "3") value: Int,
   @(ApiModelProperty @field)(value = "meaninig", example = "Time of observation deviates from the norm") meaning: String)
 
-case class QualityFlagInformation(
-    controlType: String,
-    values: Seq[SingleQualityFlag])
+case class DetailedQualityFlagInformation(
+    @(ApiModelProperty @field)(value = "controlType", example = "Quality of original value") controlType: String,
+    @(ApiModelProperty @field)(value = "values") values: Seq[SingleQualityFlag])
+
+@ApiModel(description = "Textual description of all possible quality flags")
+case class FullQualityFlagInformation(
+    @(ApiModelProperty @field)(value = "sumarized") sumarized: Option[Iterable[UserQualityInformation]],
+    @(ApiModelProperty @field)(value = "details") details: Option[Iterable[DetailedQualityFlagInformation]])
 
 @ApiModel(description = "Data response for observation time series.")
 case class QualityFlagInformationResponse(
@@ -66,7 +71,7 @@ case class QualityFlagInformationResponse(
   @(ApiModelProperty @field)(value = ApiConstants.NEXT_LINK, example = ApiConstants.NEXT_LINK_EXAMPLE) nextLink: Option[URL],
   @(ApiModelProperty @field)(value = ApiConstants.PREVIOUS_LINK, example = ApiConstants.PREVIOUS_LINK_EXAMPLE) previousLink: Option[URL],
   @(ApiModelProperty @field)(value = ApiConstants.CURRENT_LINK, example = ApiConstants.CURRENT_LINK_EXAMPLE) currentLink: URL,
-  @(ApiModelProperty @field)(value = ApiConstants.DATA) data: Iterable[QualityFlagInformation])
+  @(ApiModelProperty @field)(value = ApiConstants.DATA) data: FullQualityFlagInformation)
     extends BasicResponse(context, responseType, apiVersion, license, createdAt, queryTime, currentItemCount, itemsPerPage, offset, totalItemCount,
       nextLink, previousLink, currentLink)
 
