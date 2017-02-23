@@ -47,7 +47,7 @@ class JsonFormatSpec extends Specification {
     implicit val request = FakeRequest("GET", "test")
     val data = ObservationSeries(
       Some(station), None, None, Some("2015-02-01T06:00:00Z"), Some(List(new Observation(Some("air_temperature"),
-        Some(ObsValue(12.7)), Some("degC"), None, Some("1"), Some("A"), Some(0), None))))
+        Some(ObsValue(12.7)), Some("degC"), None, Some("1"), Some("A"), Some(0), None, None))))
     val output = JsonFormat.format(start, List(data))
     Json.parse(output)
   }

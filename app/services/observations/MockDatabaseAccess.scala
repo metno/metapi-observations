@@ -60,6 +60,7 @@ class MockDatabaseAccess extends DatabaseAccess {
             Some("1"),
             Some("A"),
             Some(0),
+            None,
             None)
         )
       )
