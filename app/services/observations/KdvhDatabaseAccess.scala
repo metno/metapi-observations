@@ -63,7 +63,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
   private val dateFormat = "YYYY-MM-DD\"T\"HH24:MI:SS.\"000Z\""
 
   private def getTimeSeries(sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String]) : List[ObservationMeta] = {
-    
+
     val parser: RowParser[ObservationMeta] = {
       get[Int]("kdvhStNr") ~
       get[Int]("kdvhSensorNr") ~
@@ -85,7 +85,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     val sourcesQ = if (sources.isEmpty) {
       "TRUE"
     } else {
-      val sourceStr = SourceSpecification.sql(sources, "stnr", Some("(sensor_nr-1)"))
+      val sourceStr = SourceSpecification.stationWhereClause(sources, "stnr", Some("(sensor_nr-1)"))
       s"($sourceStr)"
     }
     val timeStart = TimeSpecification.min(refTime).toString
@@ -240,7 +240,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         val kdvhStNr = meta.map(_.kdvhStNr).toSet.mkString(",")
         val params = meta.map(_.kdvhElemCode).toSet
         val query = getObservationDataQuery(valueTable, flagTable, kdvhStNr, refTime, params)
-        
+
         Logger.debug(query)
 
         SQL(query).withResult(getRows(_, meta, params, List.empty[ObservationSeries])) match {
@@ -249,13 +249,13 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         }
       }
     }
-    
+
     val groups = obsList.groupBy { seriesMeta => (seriesMeta.sourceId, seriesMeta.geometry, seriesMeta.levels, seriesMeta.referenceTime) }
 
     val data = groups.map { case (k,v) => ObservationSeries(k._1, k._2, k._3, k._4, Some(v.map(_.observations.getOrElse(Seq[Observation]())).flatten.toSeq ) ) } toList
 
     data.sortBy( r => (r.sourceId, r.referenceTime) )
-    
+
   }
 
   override def getObservations(auth: Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String], fields: Set[String]): List[ObservationSeries] = {
@@ -265,7 +265,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
   }
 
   /**
-   * Retrieve time series data from KDVH/KDVH-proxy 
+   * Retrieve time series data from KDVH/KDVH-proxy
    */
   override def getAvailableTimeSeries(
       auth: Option[String],
@@ -275,7 +275,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       perfCategory: Seq[String],
       expCategory: Seq[String],
       fields: Set[String]): List[ObservationTimeSeries] = {
-    
+
     val parser: RowParser[ObservationTimeSeries] = {
       get[Option[String]]("sourceId") ~
       get[Option[String]]("level_type") ~
@@ -344,26 +344,26 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       val result = SQL(query).as( parser * )
       result.map (
         row => row.copy(uri = Some(
-            ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + row.sourceId.get 
-              + "&referencetime=" + row.validFrom.get + "/" + row.validTo.getOrElse("2999-12-31T23:59:59Z") 
+            ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + row.sourceId.get
+              + "&referencetime=" + row.validFrom.get + "/" + row.validTo.getOrElse("2999-12-31T23:59:59Z")
               + "&elements=" + row.elementId.get
-              + (if (!perfCategory.isEmpty) "&performancecategory=" + perfCategory.mkString(",") else "") 
+              + (if (!perfCategory.isEmpty) "&performancecategory=" + perfCategory.mkString(",") else "")
               + (if (!expCategory.isEmpty) "&exposurecategory=" + expCategory.mkString(",") else "")
           )
         )
       )
     }
   }
-  
+
   private def timeSeriesSources(sources: Seq[String]) = {
     if (sources.isEmpty) {
       "TRUE"
     } else {
-      val sourceStr = SourceSpecification.sql(sources, "stnr", Some("(sensor_nr-1)"))
+      val sourceStr = SourceSpecification.stationWhereClause(sources, "stnr", Some("(sensor_nr-1)"))
       s"($sourceStr)"
     }
   }
-  
+
   private def timeSeriesObsTime(obsTime: Option[TimeSpecification.Range]) = {
     if (obsTime.isEmpty) {
       "TRUE"
@@ -401,7 +401,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     }
   }
 
-  
+
 }
 
 // scalastyle:on
