@@ -100,8 +100,12 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) =>
-          Error.error(BAD_REQUEST, Some(x getLocalizedMessage), None, start)
+        case Failure(x) => {
+          //$COVERAGE-OFF$
+          Logger.error(x.getLocalizedMessage)
+          Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)
+          //$COVERAGE-ON$
+        }
       }
   }
 
@@ -166,8 +170,12 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) =>
-          Error.error(BAD_REQUEST, Some(x getLocalizedMessage), None, start)
+        case Failure(x) => {
+          //$COVERAGE-OFF$
+          Logger.error(x.getLocalizedMessage)
+          Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)
+          //$COVERAGE-ON$
+        }
       }
   }
 
@@ -217,9 +225,12 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) =>
-          Logger.error(x getLocalizedMessage)
-          Error.error(INTERNAL_SERVER_ERROR, Some("An internal server error has occured. Please try again later"), None, start)
+        case Failure(x) => {
+          //$COVERAGE-OFF$
+          Logger.error(x.getLocalizedMessage)
+          Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)
+          //$COVERAGE-ON$
+        }
       }
   }
 
@@ -259,9 +270,12 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) =>
-          Logger.error(x getLocalizedMessage)
-          Error.error(INTERNAL_SERVER_ERROR, Some("An internal server error has occured. Please try again later"), None, start)
+        case Failure(x) => {
+          //$COVERAGE-OFF$
+          Logger.error(x.getLocalizedMessage)
+          Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)
+          //$COVERAGE-ON$
+        }
       }
   }
 }
