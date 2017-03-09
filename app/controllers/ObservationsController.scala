@@ -219,7 +219,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
             case None => Error.error(NOT_FOUND, Some("No data found"), None, start)
             case Some(data) =>
               format.toLowerCase() match {
-                case "jsonld" => Ok(JsonQualityFormat.format(start, data)) as "application/vnd.no.met.data.observations.timeseries-v0+json"
+                case "jsonld" => Ok(JsonQualityFormat.format(start, data)) as "application/vnd.no.met.data.observations.quality-v0+json"
                 case x => Error.error(BAD_REQUEST, Some(s"Invalid output format: $x"), Some("Supported output formats: jsonld"), start)
               }
           }
@@ -265,7 +265,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
       } match {
         case Success(data) =>
           format.toLowerCase() match {
-            case "jsonld" => Ok(FullQualityFlagInformationFormat.format(start, data)) as "application/vnd.no.met.data.observations.timeseries-v0+json"
+            case "jsonld" => Ok(FullQualityFlagInformationFormat.format(start, data)) as "application/vnd.no.met.data.observations.qualitycodes-v0+json"
             case x => Error.error(BAD_REQUEST, Some(s"Invalid output format: $x"), Some("Supported output formats: jsonld"), start)
           }
         case Failure(x: BadRequestException) =>
