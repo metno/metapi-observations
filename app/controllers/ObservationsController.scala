@@ -70,8 +70,6 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
     implicit request =>
       val start = DateTime.now(DateTimeZone.UTC)
       val auth = request.headers.get("Authorization")
-      val sourceDef = SourceSpecification(Some(sources)).stationNumbers
-      val timeDef = TimeSpecification.parse(referencetime).get
       val elementDef = elements split "," map (_ trim)
       val perfList: Seq[String] = performancecategory match {
         case Some(performancecategory) => performancecategory split "," map (_ trim)
@@ -85,6 +83,12 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
       Try {
         // ensure that the query string contains supported fields only
         QueryStringUtil.ensureSubset(Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "fields"), request.queryString.keySet)
+
+        val sourceDef = SourceSpecification(Some(sources)).stationNumbers
+        val timeDef = TimeSpecification.parse(referencetime) match {
+          case Success(x) => x
+          case Failure(e) => throw new BadRequestException("Failed to parse reference time: " + e.getMessage)
+        }
 
         dataAccess.getObservations(auth, sourceDef, timeDef, elementDef, perfList, expList, fieldDef);
       } match {
@@ -139,8 +143,6 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
     implicit request =>
       val start = DateTime.now(DateTimeZone.UTC)
       val auth = request.headers.get("Authorization")
-      val sourceList = SourceSpecification(sources).stationNumbers
-      val timeDef = if (referencetime.isEmpty) None else Some(TimeSpecification.parse(referencetime.get).get)
       val elementList: Seq[String] = elements match {
         case Some(elements) => elements split "," map (_ trim)
         case _ => Seq()
@@ -157,6 +159,13 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
       Try {
         // ensure that the query string contains supported fields only
         QueryStringUtil.ensureSubset(Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "fields"), request.queryString.keySet)
+
+        val sourceList = SourceSpecification(sources).stationNumbers
+        val timeDef = if (referencetime.isEmpty) None else TimeSpecification.parse(referencetime.get) match {
+          case Success(x) => Some(x)
+          case Failure(e) => throw new BadRequestException("Failed to parse reference time: " + e.getMessage)
+        }
+
         dataAccess.getAvailableTimeSeries(auth, sourceList, timeDef, elementList, perfList, expList, fieldDef)
       } match {
         case Success(data) =>
