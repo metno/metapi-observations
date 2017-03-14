@@ -40,9 +40,9 @@ import scala.concurrent._
 import scala.language.postfixOps
 import scala.util._
 import no.met.data.{ConfigUtil, SourceSpecification}
+import no.met.data.AnormUtil._
 import no.met.geometry.Level
 import no.met.time.TimeSpecification
-import no.met.time.TimeSpecification._
 import models._
 import services.observations._
 
@@ -91,24 +91,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     val timeStart = TimeSpecification.min(refTime).toString
     val timeEnd = TimeSpecification.max(refTime).toString
     val refTimeQ = s"fromdate <= TO_DATE('$timeEnd', '$dateFormat') AND (todate IS NULL OR todate >= TO_DATE('$timeStart', '$dateFormat'))"
-    val elementsQ = if (elements.isEmpty) {
-      "TRUE"
-    } else {
-      val elementList = elements reduce (_ + "', '" + _)
-      s"element_id IN ('${elementList}')"
-    }
-    val perfCatQ = if (perfCat.isEmpty) {
-      "TRUE"
-    } else {
-      val perfCatList = perfCat reduce (_ + "', '" + _)
-      s"performance_category IN ('${perfCatList}')"
-    }
-    val expCatQ = if (expCat.isEmpty) {
-      "TRUE"
-    } else {
-      val expCatList = expCat reduce (_ + "', '" + _)
-      s"exposure_category IN ('${expCatList}')"
-    }
+    val elementsQ = if (elements.isEmpty) "TRUE" else "element_id IN ({elements})"
+    val perfCatQ = if (perfCat.isEmpty) "TRUE" else "performance_category IN ({perfcats})"
+    val expCatQ = if (expCat.isEmpty) "TRUE" else "exposure_category IN ({expcats})"
 
     val query = s"""
       |SELECT
@@ -146,7 +131,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     Logger.debug(query)
 
     DB.withConnection("kdvh") { implicit connection =>
-      SQL(query).as( parser * )
+      SQL(insertPlaceholders(query, List(("elements", elements.size), ("perfcats", perfCat.size), ("expcats", expCat.size))))
+        .on(onArg(List(("elements", elements.toList), ("perfcats", perfCat.toList), ("expcats", expCat.toList))): _*)
+        .as( parser * )
     }
   }
 
@@ -163,6 +150,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
   }
 
   private def getObservationDataQuery(dataTable : String, flagTable : Option[String], stationId : String, refTime:Seq[Interval], params:Set[String]) : String = {
+
     val elems = params.mkString(",")
     /* Note the use of temporary table expressions in order to force oracle_fdw to push down the selections and
      * projections on the Oracle database.
@@ -341,7 +329,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     Logger.debug(query)
 
     DB.withConnection("kdvh") { implicit conn =>
-      val result = SQL(query).as( parser * )
+      val result = SQL(insertPlaceholders(query, List(("elements", elements.size), ("perfcats", perfCategory.size), ("expcats", expCategory.size))))
+        .on(onArg(List(("elements", elements.toList), ("perfcats", perfCategory.toList), ("expcats", expCategory.toList))): _*)
+        .as( parser * )
       result.map (
         row => row.copy(uri = Some(
             ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + row.sourceId.get
@@ -374,33 +364,11 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     }
   }
 
-  private def timeSeriesElements(elements: Seq[String]) = {
-    if (elements.isEmpty) {
-      "TRUE"
-    } else {
-      val elementList = elements reduce (_ + "', '" + _)
-      s"element_id IN ('${elementList}')"
-    }
-  }
+  private def timeSeriesElements(elements: Seq[String]) = if (elements.isEmpty) "TRUE" else "element_id IN ({elements})"
 
-    private def timeSeriesPerformanceCategory(perfCat: Seq[String]) = {
-    if (perfCat.isEmpty) {
-      "TRUE"
-    } else {
-      val perfCatList = perfCat reduce (_ + "', '" + _)
-      s"performance_category IN ('${perfCatList}')"
-    }
-  }
+  private def timeSeriesPerformanceCategory(perfCat: Seq[String]) = if (perfCat.isEmpty) "TRUE" else "performance_category IN ({perfcats})"
 
-  private def timeSeriesExposureCategory(expCat: Seq[String]) = {
-    if (expCat.isEmpty) {
-      "TRUE"
-    } else {
-      val expCatList = expCat reduce (_ + "', '" + _)
-      s"exposure_category IN ('${expCatList}')"
-    }
-  }
-
+  private def timeSeriesExposureCategory(expCat: Seq[String]) = if (expCat.isEmpty) "TRUE" else "exposure_category IN ({expcats})"
 
 }
 
