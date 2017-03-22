@@ -329,8 +329,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     Logger.debug(query)
 
     DB.withConnection("kdvh") { implicit conn =>
-      val result = SQL(insertPlaceholders(query, List(("elements", elements.size), ("perfcats", perfCategory.size), ("expcats", expCategory.size))))
-        .on(onArg(List(("elements", elements.toList), ("perfcats", perfCategory.toList), ("expcats", expCategory.toList))): _*)
+      val elementsList = if (elements.isEmpty) List[String]() else elements.map(id => replaceWildcards(id).toLowerCase)
+      val result = SQL(insertPlaceholders(query, List(("perfcats", perfCategory.size), ("expcats", expCategory.size))))
+        .on(onArg(List(("elements", elementsList.toList), ("perfcats", perfCategory.toList), ("expcats", expCategory.toList))): _*)
         .as( parser * )
       result.map (
         row => row.copy(uri = Some(
@@ -364,7 +365,16 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     }
   }
 
-  private def timeSeriesElements(elements: Seq[String]) = if (elements.isEmpty) "TRUE" else "element_id IN ({elements})"
+  // Converts a string to use '%' for wildcards instead of '*'.
+  private def replaceWildcards(s: String): String = {
+    s.replaceAll("\\*", "%")
+  }
+
+  private def timeSeriesElements(elements: Seq[String]) = if (elements.isEmpty) {
+    "TRUE"
+  } else {
+    "(" + (1 to elements.size).foldLeft("") { (s: String, i: Int) => s + s"${if (i == 1) "" else " OR "}(lower(element_id) LIKE {elements$i})" } + ")"
+  }
 
   private def timeSeriesPerformanceCategory(perfCat: Seq[String]) = if (perfCat.isEmpty) "TRUE" else "performance_category IN ({perfcats})"
 
