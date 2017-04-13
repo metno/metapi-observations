@@ -50,11 +50,11 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
     new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def observations( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=docs#/sources>sources</a> resource.",
+    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=reference#/sources>sources</a> resource.",
       required = true) sources: String,
-    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=reference#time_specification>Time Specifications</a> for documentation and examples.",
+    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=concepts#time_specification>Time Specifications</a> for documentation and examples.",
       required = true) referencetime: String,
-    @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieved using the <a href=docs#/elements>elements</a> resource.",
+    @ApiParam(value = "The elements that you want observations for. Enter a comma-separated list to retrieve data for multiple elements. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieved using the <a href=reference#/elements>elements</a> resource.",
       required = true) elements: String,
     @ApiParam(value = "Return only data with the specified performance category. Enter a comma-separated list to specify multiple performance categories. Leave the query parameter empty to retrieve data regardless of its performance category.",
       required = false) performancecategory: Option[String],
@@ -124,11 +124,11 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
     new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def timeSeries( // scalastyle:ignore public.methods.have.type
-    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/docs#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
+    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/reference#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
       required = false) sources: Option[String],
-    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=reference#time_specification>Time Specifications</a> for documentation and examples.",
+    @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=concepts#time_specification>Time Specifications</a> for documentation and examples.",
       required = true) referencetime: Option[String],
-    @ApiParam(value = "The elements that you want observations for as a comma-separated list of names with optional wildcard asterisks (e.g. 'ai\\*mpe\\*' would match 'air_temperature'). Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieved using the <a href=\"https://data.met.no/docs#/elements\">elements</a> resource. Leave the query parameter empty to retrieve timeseries for all available elements.",
+    @ApiParam(value = "The elements that you want observations for as a comma-separated list of names with optional wildcard asterisks (e.g. 'ai\\*mpe\\*' would match 'air_temperature'). Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieved using the <a href=\"https://data.met.no/reference#/elements\">elements</a> resource. Leave the query parameter empty to retrieve timeseries for all available elements.",
       required = false) elements: Option[String],
     @ApiParam(value = "Return only time series with the specified performance category. Enter a comma-separated list to specify multiple performance categories. Leave the query parameter empty to retrieve timeseries for all available performance categories.",
       required = false) performancecategory: Option[String],
