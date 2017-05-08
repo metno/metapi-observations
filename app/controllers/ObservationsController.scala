@@ -128,7 +128,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
       required = false) sources: Option[String],
     @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=concepts#time_specification>Time Specifications</a> for documentation and examples.",
       required = true) referencetime: Option[String],
-    @ApiParam(value = "The elements that you want observations for as a comma-separated list of names with optional wildcard asterisks (e.g. 'ai\\*mpe\\*' would match 'air_temperature'). Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieved using the <a href=\"https://data.met.no/reference#/elements\">elements</a> resource. Leave the query parameter empty to retrieve timeseries for all available elements.",
+    @ApiParam(value = "The elements that you want observations for as a comma-separated list of <a href=concepts#searchfilter>search filters</a>. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieved using the <a href=\"https://data.met.no/reference#/elements\">elements</a> resource. Leave the query parameter empty to retrieve timeseries for all available elements.",
       required = false) elements: Option[String],
     @ApiParam(value = "Return only time series with the specified performance category. Enter a comma-separated list to specify multiple performance categories. Leave the query parameter empty to retrieve timeseries for all available performance categories.",
       required = false) performancecategory: Option[String],
