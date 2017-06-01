@@ -53,7 +53,7 @@ case class DetailedQualityFlagInformation(
 
 @ApiModel(description = "Textual description of all possible quality flags")
 case class FullQualityFlagInformation(
-    @(ApiModelProperty @field)(value = "sumarized") sumarized: Option[Iterable[UserQualityInformation]],
+    @(ApiModelProperty @field)(value = "summarized") summarized: Option[Iterable[UserQualityInformation]],
     @(ApiModelProperty @field)(value = "details") details: Option[Iterable[DetailedQualityFlagInformation]])
 
 @ApiModel(description = "Data response for observation time series.")
