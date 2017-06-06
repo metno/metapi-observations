@@ -127,7 +127,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
     @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/reference#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
       required = false) sources: Option[String],
     @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=concepts#time_specification>Time Specifications</a> for documentation and examples.",
-      required = true) referencetime: Option[String],
+      required = false) referencetime: Option[String],
     @ApiParam(value = "The elements that you want observations for as a comma-separated list of <a href=concepts#searchfilter>search filters</a>. Elements follow the MET API naming convention and a complete list of all elements in the system can be retrieved using the <a href=\"https://data.met.no/reference#/elements\">elements</a> resource. Leave the query parameter empty to retrieve timeseries for all available elements.",
       required = false) elements: Option[String],
     @ApiParam(value = "Return only time series with the specified performance category. Enter a comma-separated list to specify multiple performance categories. Leave the query parameter empty to retrieve timeseries for all available performance categories.",
