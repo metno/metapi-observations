@@ -128,7 +128,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       |ORDER BY
         |stnr, sensor_nr, sensor_level, elem_code, element_id;""".stripMargin
 
-    Logger.debug(query)
+    //Logger.debug(query)
 
     DB.withConnection("kdvh") { implicit connection =>
       SQL(insertPlaceholders(query, List(("elements", elements.size), ("perfcats", perfCat.size), ("expcats", expCat.size))))
@@ -229,7 +229,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         val params = meta.map(_.kdvhElemCode).toSet
         val query = getObservationDataQuery(valueTable, flagTable, kdvhStNr, refTime, params)
 
-        Logger.debug(query)
+        //Logger.debug(query)
 
         SQL(query).withResult(getRows(_, meta, params, List.empty[ObservationSeries])) match {
           case Right(x) => obsList = x ::: obsList
@@ -326,7 +326,7 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       |ORDER BY
         |stnr, sensor_level, elem_code, element_id;""".stripMargin
 
-    Logger.debug(query)
+    //Logger.debug(query)
 
     DB.withConnection("kdvh") { implicit conn =>
       val elementsList = if (elements.isEmpty) List[String]() else elements.map(id => replaceWildcards(id).toLowerCase)
