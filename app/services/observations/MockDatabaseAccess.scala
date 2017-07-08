@@ -30,7 +30,7 @@ import play.Logger
 import com.github.nscala_time.time.Imports._
 import scala.language.postfixOps
 import scala.math.BigDecimal.int2bigDecimal
-import no.met.geometry.{Level, Point}
+import no.met.geometry.Point
 import no.met.time.TimeSpecification
 import no.met.time.TimeSpecification._
 import no.met.data.ObsValue
@@ -67,12 +67,12 @@ class MockDatabaseAccess extends DatabaseAccess {
   )
 
   def getObservations(
-      auth:Option[String],
-      sources: Seq[String],
-      refTime: TimeSpecification.Range,
-      elements: Seq[String],
-      perfCategory: Seq[String],
-      expCategory: Seq[String],
+    auth:Option[String],
+    sources: Seq[String],
+    refTime: TimeSpecification.Range,
+    elements: Seq[String],
+    perfCategory: Seq[String],
+    expCategory: Seq[String],
     fields: Set[String]): List[ObservationSeries] = {
     mockDataList.
       filter(s => sources.length == 0 || sources.contains(s.sourceId.get)).
@@ -81,9 +81,9 @@ class MockDatabaseAccess extends DatabaseAccess {
 
   // scalastyle:off
   val mockTimeSerieslist = List[ObservationTimeSeries](
-    new ObservationTimeSeries(Some("18700"), None, Some(Seq(Level(Some("height_above_ground"), Some(2), Some("m"), None))), Some("1937-02-01T00H00M00S"), None, Some("PT18H"), Some("P1D"), Some("air_temperature"), Some("degC"), None, Some("1"), Some("A"), Some("Official"), None ),
-    new ObservationTimeSeries(Some("18700"), None, Some(Seq(Level(Some("height_above_ground"), Some(2), Some("m"), None))), Some("1937-02-01T00H00M00S"), None, Some("PT18H"), Some("P1M"), Some("precipitation_amount"), Some("mm"), None, Some("1"), Some("A"), Some("Official"), None ),
-    new ObservationTimeSeries(Some("70740"), None, Some(Seq(Level(Some("height_above_ground"), Some(2), Some("m"), None))), Some("1974-05-29T12H00M00S"), None, Some("P18H"), Some("PT6H"), Some("air_temperature"), Some("degC"), None, Some("2"), Some("B"), Some("Experimental"), None )
+    new ObservationTimeSeries(Some("18700"), None, Some(Level(Some("height_above_ground"), Some("m"), None)), Some("1937-02-01T00H00M00S"), None, Some("PT18H"), Some("P1D"), Some("air_temperature"), Some("degC"), None, Some("1"), Some("A"), Some("Official"), None ),
+    new ObservationTimeSeries(Some("18700"), None, Some(Level(Some("height_above_ground"), Some("m"), None)), Some("1937-02-01T00H00M00S"), None, Some("PT18H"), Some("P1M"), Some("precipitation_amount"), Some("mm"), None, Some("1"), Some("A"), Some("Official"), None ),
+    new ObservationTimeSeries(Some("70740"), None, Some(Level(Some("height_above_ground"), Some("m"), None)), Some("1974-05-29T12H00M00S"), None, Some("P18H"), Some("PT6H"), Some("air_temperature"), Some("degC"), None, Some("2"), Some("B"), Some("Experimental"), None )
     /*
     new Station("KN18700",   "OSLO - BLINDERN",      "Norge",               Some(1492),  Some(94),  Some(59.9423),          Some(10.72),              "1941-01-01"),
     new Station("KN70740",   "STEINKJER",            "Norge",               None,        Some(10),  Some(64.02),            Some(11.5),               "1500-01-01"),
@@ -97,13 +97,15 @@ class MockDatabaseAccess extends DatabaseAccess {
   // scalastyle:on
 
   def getAvailableTimeSeries(
-      auth: Option[String],
-      sources: Seq[String],
-      obsTime: Option[TimeSpecification.Range],
-      elements: Seq[String],
-      perfCategory: Seq[String],
-      expCategory: Seq[String],
-      fields: Set[String]): List[ObservationTimeSeries] = {
+    auth: Option[String],
+    requestHost: String,
+    elemInfoGetter: ElementInfoGetter,
+    sources: Seq[String],
+    obsTime: Option[TimeSpecification.Range],
+    elements: Seq[String],
+    perfCategory: Seq[String],
+    expCategory: Seq[String],
+    fields: Set[String]): List[ObservationTimeSeries] = {
     mockTimeSerieslist.
       filter(s => sources.length == 0 || sources.contains(s.sourceId.get)).
       filter(s => elements.length == 0 || elements.contains(s.elementId.get))

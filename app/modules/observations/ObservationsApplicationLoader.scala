@@ -38,7 +38,7 @@ class ObservationsProdModule extends AbstractModule {
 
   def configure() {
     bind(classOf[DatabaseAccess]).to(classOf[KdvhDatabaseAccess])
-    bind(classOf[ElementTranslator]).to(classOf[KdvhElementTranslator])
+    bind(classOf[ElementInfoGetter]).to(classOf[ProdElementInfoGetter])
   }
 
 }
@@ -51,7 +51,7 @@ class ObservationsNonProdModule extends AbstractModule {
 
   def configure() {
     bind(classOf[DatabaseAccess]).to(classOf[MockDatabaseAccess])
-    bind(classOf[ElementTranslator]).to(classOf[MockElementTranslator])
+    bind(classOf[ElementInfoGetter]).to(classOf[MockElementInfoGetter])
   }
 
 }

@@ -25,19 +25,16 @@
 
 package services.observations
 
+import play.api.libs.json._
+import javax.inject.Singleton
+
 /**
- * Interface for translating between kdvh and api element names
+ * Concrete implementation of ElementInfoGetter, used for development and testing.
  */
-abstract class ElementTranslator {
-  
-  /**
-   * Translates an API element name to a KDVH element name.
-   */
-  def toKdvhElemName(auth: Option[String], apiElemName: String): Seq[String]
+@Singleton
+class MockElementInfoGetter extends ElementInfoGetter {
 
-  /**
-   * Translates a KDVH element name to an API element name.
-   */
-  def toApiElemName(auth: Option[String], kdvhElemName: String): Option[String]
-
+  override def getInfoMap(auth: Option[String], requestHost: String, elementIds: Set[String]): Map[String, ElementInfo] = {
+    elementIds.map((id: String) => (id -> ElementInfo(JsObject(Map(("id" -> JsString(id))))))).toMap // for now
+  }
 }

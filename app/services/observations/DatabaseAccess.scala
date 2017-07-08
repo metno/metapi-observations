@@ -35,28 +35,30 @@ import models._
 abstract class DatabaseAccess {
 
   /** Get observation data from the database
-   */
+    */
   def getObservations(
-      auth: Option[String],
-      stationId: Seq[String],
-      obstime: TimeSpecification.Range,
-      elements: Seq[String],
-      perfCategory: Seq[String],
-      expCategory: Seq[String],
-      fields: Set[String]
-    ): List[ObservationSeries]
-  
+    auth: Option[String],
+    stationId: Seq[String],
+    obstime: TimeSpecification.Range,
+    elements: Seq[String],
+    perfCategory: Seq[String],
+    expCategory: Seq[String],
+    fields: Set[String]
+  ): List[ObservationSeries]
+
   /** Get time series information from the database
-   */
+    */
   def getAvailableTimeSeries(
-      auth: Option[String],
-      stationId: Seq[String],
-      obsTime: Option[TimeSpecification.Range],
-      elements: Seq[String],
-      perfCategory: Seq[String],
-      expCategory: Seq[String],
-      fields: Set[String]
-    ): List[ObservationTimeSeries]
+    auth: Option[String],
+    requestHost: String,
+    elemInfoGetter: ElementInfoGetter,
+    stationId: Seq[String],
+    obsTime: Option[TimeSpecification.Range],
+    elements: Seq[String],
+    perfCategory: Seq[String],
+    expCategory: Seq[String],
+    fields: Set[String]
+  ): List[ObservationTimeSeries]
 
 }
 

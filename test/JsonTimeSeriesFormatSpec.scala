@@ -32,7 +32,7 @@ import play.api.libs.json._
 import play.api.test.Helpers._
 import com.github.nscala_time.time.Imports._
 import no.met.data.ApiConstants
-import no.met.geometry.{Level,Point}
+import no.met.geometry.Point
 import models._
 import services.observations._
 import TestUtil._
@@ -46,7 +46,9 @@ class JsonTimeSeriesFormatSpec extends Specification {
 
   def createJsonLd() : JsValue = {
     implicit val request = FakeRequest("GET", "test")
-    val data =  new ObservationTimeSeries(Some("SN18700"), None, Some(Seq(Level(Some("height_above_ground"), Some(2), Some("m"), None))), Some("1937-02-01T00H00M00S"), None, Some("PT18H"), Some("P1D"), Some("air_temperature"), Some("degC"), None, Some("1"), Some("A"), Some("Official"), None )
+    val data =  new ObservationTimeSeries(
+      Some("SN18700"), None, Some(Level(Some("height_above_ground"), Some("m"), None)), Some("1937-02-01T00H00M00S"), None, Some("PT18H"), Some("P1D"),
+      Some("air_temperature"), Some("degC"), None, Some("1"), Some("A"), Some("Official"), None )
     val output = JsonTimeSeriesFormat.format(start, List(data))
     Json.parse(output)
   }
@@ -63,7 +65,7 @@ class JsonTimeSeriesFormatSpec extends Specification {
 
     "create correctly structured output" in new WithApplication(TestUtil.app) {
 
-      val json = createJsonLd()  
+      val json = createJsonLd()
 
       (json \\ ApiConstants.DATA_NAME).size must equalTo(1)
       ((json \ ApiConstants.DATA_NAME)(0) \ "sourceId").as[JsString] must equalTo(JsString("SN18700"))

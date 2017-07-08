@@ -29,32 +29,17 @@ import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import services.observations._
+import play.api.libs.json.Json
 
 @RunWith(classOf[JUnitRunner])
-class KdvhElementTranslatorSpec extends Specification {
+class ProdElementInfoGetterSpec extends Specification {
 
-  val kdvhElemTranslatorNonProd = new MockElementTranslator
+  val elemInfoGetter = new MockElementInfoGetter
 
-  "The mock ElementTranslator service" should {
-
-    "return translated data for a single value" in {
-      kdvhElemTranslatorNonProd.toKdvhElemName(None, "precipitation_amount") must equalTo(Seq("RR_24"))
-    }
-
-    "return translated data for a sequence value" in {
-      kdvhElemTranslatorNonProd.toKdvhElemName(None, "air_temperature") must equalTo(Seq("TA", "TA10"))
-    }
-    
-    "do reverse translations" in {
-      kdvhElemTranslatorNonProd.toApiElemName(None, "TA") must equalTo(Some("air_temperature"))
-    }
-
-    "throw exception on translation of unknown element" in {
-      kdvhElemTranslatorNonProd.toKdvhElemName(None, "no_such_element") must throwA[Exception]
-    }
-
-    "return None on reverse translation of unknown element" in {
-      kdvhElemTranslatorNonProd.toApiElemName(None, "NOTHING") must equalTo(None)
+  "The mock ElementInfoGetter service" should {
+    "return mock info" in {
+      elemInfoGetter.getInfoMap(None, "", Set("dummy1", "dummy2")) must equalTo(
+        Map(("dummy1" -> ElementInfo(Json.parse("{\"id\": \"dummy1\"}"))), ("dummy2" -> ElementInfo(Json.parse("{\"id\": \"dummy2\"}")))))
     }
   }
 }

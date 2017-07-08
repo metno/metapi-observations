@@ -41,6 +41,8 @@ import models._
  */
 object JsonFormat extends BasicJsonFormat {
 
+  implicit val levelWrites = Json.writes[Level]
+
   implicit val observationWrites = Json.writes[Observation]
 
   /*
@@ -56,13 +58,13 @@ object JsonFormat extends BasicJsonFormat {
   implicit val observationSeriesWrites: Writes[ObservationSeries] = (
     (JsPath \ "sourceId").writeNullable[String] and
     (JsPath \ "geometry").writeNullable[Point] and
-    (JsPath \ "levels").writeNullable[Seq[Level]] and
+    (JsPath \ "levels").writeNullable[Level] and
     (JsPath \ "referenceTime").writeNullable[String] and
     (JsPath \ "observations").writeNullable[Seq[Observation]]
   )(unlift(ObservationSeries.unapply))
 
   implicit val observationResponseWrites: Writes[ObservationResponse] = (
-    (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and 
+    (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and
     (JsPath \ ApiConstants.OBJECT_TYPE_NAME).write[String] and
     (JsPath \ ApiConstants.API_VERSION_NAME).write[String] and
     (JsPath \ ApiConstants.LICENSE_NAME).write[URL] and
@@ -103,5 +105,5 @@ object JsonFormat extends BasicJsonFormat {
                                         observations)
     Json.prettyPrint(Json.toJson(response))
   }
-  
+
 }

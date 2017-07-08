@@ -31,7 +31,7 @@ import java.net.URL
 import scala.annotation.meta.field
 import scala.collection._
 import no.met.data.{ ApiConstants, BasicResponse }
-import no.met.geometry.{ Level, Point }
+import no.met.geometry.{ Point }
 
 @ApiModel(description = "Data response for observation time series.")
 case class ObservationTimeSeriesResponse(
@@ -56,7 +56,7 @@ case class ObservationTimeSeriesResponse(
 case class ObservationTimeSeries(
   @(ApiModelProperty @field)(value = "The sourceId at which this series of values were observed.", example = "SN18700") sourceId: Option[String],
   @(ApiModelProperty @field)(value = "Spatial location of the data when it was observed (if known).") geometry: Option[Point],
-  @(ApiModelProperty @field)(value = "The level of the data when it was observed (if known).", example = "74") levels: Option[Seq[Level]],
+  @(ApiModelProperty @field)(value = "Sensor level (if known).") level: Option[Level],
   @(ApiModelProperty @field)(value = "The datetime from which data exists in this timeseries.", example = "1974-05-29") validFrom: Option[String],
   @(ApiModelProperty @field)(value = "The datetime to which data exists in this timeseries. Null if data is still being added to the time series.", example = "1977-05-16") validTo: Option[String],
   @(ApiModelProperty @field)(value = "The offset from the validFrom datetime. Add the offset to validFrom to get the referenceTime of the first observation in the timeseries.", example = "P18H") timeOffset: Option[String],

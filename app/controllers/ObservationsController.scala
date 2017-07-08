@@ -37,7 +37,7 @@ import services.observations._
 import models.QualityInformation
 
 @Api(value = "/observations")
-class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslator: ElementTranslator) extends Controller {
+class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGetter: ElementInfoGetter) extends Controller {
 
   @ApiOperation(
     value = "Get observation data from the MET API.",
@@ -104,7 +104,9 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) => {
+        case Failure(x: InternalServerErrorException) => // internal server error; Case 1: propagate details to client
+          Error.error(INTERNAL_SERVER_ERROR, Some(x getLocalizedMessage), None, start)
+        case Failure(x) => { // internal server error; Case 2: do not propagate details to client
           //$COVERAGE-OFF$
           Logger.error(x.getLocalizedMessage)
           Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)
@@ -142,7 +144,6 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
       defaultValue = "jsonld") format: String) = no.met.security.AuthorizedAction {
     implicit request =>
       val start = DateTime.now(DateTimeZone.UTC)
-      val auth = request.headers.get("Authorization")
       val elementList: Seq[String] = elements match {
         case Some(elements) => elements split "," map (_ trim)
         case _ => Seq()
@@ -166,7 +167,8 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           case Failure(e) => throw new BadRequestException("Failed to parse reference time: " + e.getMessage)
         }
 
-        dataAccess.getAvailableTimeSeries(auth, sourceList, timeDef, elementList, perfList, expList, fieldDef)
+        dataAccess.getAvailableTimeSeries(
+          request.headers.get("Authorization"), request.host, elemInfoGetter, sourceList, timeDef, elementList, perfList, expList, fieldDef)
       } match {
         case Success(data) =>
           if (data isEmpty) {
@@ -179,7 +181,9 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) => {
+        case Failure(x: InternalServerErrorException) => // internal server error; Case 1: propagate details to client
+          Error.error(INTERNAL_SERVER_ERROR, Some(x getLocalizedMessage), None, start)
+        case Failure(x) => { // internal server error; Case 2: do not propagate details to client
           //$COVERAGE-OFF$
           Logger.error(x.getLocalizedMessage)
           Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)
@@ -234,7 +238,9 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) => {
+        case Failure(x: InternalServerErrorException) => // internal server error; Case 1: propagate details to client
+          Error.error(INTERNAL_SERVER_ERROR, Some(x getLocalizedMessage), None, start)
+        case Failure(x) => { // internal server error; Case 2: do not propagate details to client
           //$COVERAGE-OFF$
           Logger.error(x.getLocalizedMessage)
           Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)
@@ -279,7 +285,9 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemTranslat
           }
         case Failure(x: BadRequestException) =>
           Error.error(BAD_REQUEST, Some(x getLocalizedMessage), x help, start)
-        case Failure(x) => {
+        case Failure(x: InternalServerErrorException) => // internal server error; Case 1: propagate details to client
+          Error.error(INTERNAL_SERVER_ERROR, Some(x getLocalizedMessage), None, start)
+        case Failure(x) => { // internal server error; Case 2: do not propagate details to client
           //$COVERAGE-OFF$
           Logger.error(x.getLocalizedMessage)
           Error.error(INTERNAL_SERVER_ERROR, Some("An internal error occurred"), None, start)

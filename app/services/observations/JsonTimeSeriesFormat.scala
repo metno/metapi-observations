@@ -39,10 +39,12 @@ import models._
  */
 object JsonTimeSeriesFormat extends BasicJsonFormat {
 
+  implicit val levelWrites = Json.writes[Level]
+
   implicit val observationTimeSeriesWrites = Json.writes[ObservationTimeSeries]
 
   implicit val observationTimeSeriesResponseWrites: Writes[ObservationTimeSeriesResponse] = (
-    (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and 
+    (JsPath \ ApiConstants.CONTEXT_NAME).write[URL] and
     (JsPath \ ApiConstants.OBJECT_TYPE_NAME).write[String] and
     (JsPath \ ApiConstants.API_VERSION_NAME).write[String] and
     (JsPath \ ApiConstants.LICENSE_NAME).write[URL] and

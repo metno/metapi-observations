@@ -28,6 +28,7 @@ package services.observations
 import play.api.Play.current
 import play.api.db._
 import play.api.libs.ws._
+import play.api.libs.json._
 import play.Logger
 import anorm._
 import anorm.SqlParser._
@@ -39,9 +40,8 @@ import scala.annotation.tailrec
 import scala.concurrent._
 import scala.language.postfixOps
 import scala.util._
-import no.met.data.{ConfigUtil, SourceSpecification}
+import no.met.data._
 import no.met.data.AnormUtil._
-import no.met.geometry.Level
 import no.met.time.TimeSpecification
 import models._
 import services.observations._
@@ -62,23 +62,26 @@ class KdvhDatabaseAccess extends DatabaseAccess {
    */
   private val dateFormat = "YYYY-MM-DD\"T\"HH24:MI:SS.\"000Z\""
 
-  private def getTimeSeries(sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String]) : List[ObservationMeta] = {
+  private def getTimeSeries(
+    sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String]): List[ObservationMeta] = {
 
     val parser: RowParser[ObservationMeta] = {
       get[Int]("kdvhStNr") ~
-      get[Int]("kdvhSensorNr") ~
-      get[Option[Double]]("level") ~
-      get[Option[String]]("levelUnit") ~
-      get[String]("kdvhElemCode") ~
-      get[String]("elementId") ~
-      get[Option[String]]("elementUnit") ~
-      get[Option[String]]("elementCode") ~
-      get[String]("valueTable") ~
-      get[Option[String]]("flagTable") ~
-      get[String]("performanceCategory") ~
-      get[String]("exposureCategory") map {
+        get[Int]("kdvhSensorNr") ~
+        get[Option[Double]]("level") ~
+        get[Option[String]]("levelUnit") ~
+        get[String]("kdvhElemCode") ~
+        get[String]("elementId") ~
+        get[Option[String]]("elementUnit") ~
+        get[Option[String]]("elementCode") ~
+        get[String]("valueTable") ~
+        get[Option[String]]("flagTable") ~
+        get[String]("performanceCategory") ~
+        get[String]("exposureCategory") map {
         case kdvhStnr~kdvhSensor~level~levelUnit~kdvhElem~elemId~elemUnit~elemCode~valueTable~flagTable~perfCat~expCat =>
-          ObservationMeta(kdvhStnr,kdvhSensor,if (level.isEmpty || levelUnit.isEmpty) None else Some(Seq(Level(Some("height_above_ground"),level,levelUnit,None))),kdvhElem,elemId,elemUnit,elemCode,valueTable,flagTable,perfCat,expCat)
+          ObservationMeta(
+            kdvhStnr, kdvhSensor, if (level.isEmpty || levelUnit.isEmpty) None else Some(Level(None, levelUnit, level)), kdvhElem, elemId, elemUnit,
+            elemCode, valueTable, flagTable, perfCat, expCat)
       }
     }
 
@@ -256,34 +259,27 @@ class KdvhDatabaseAccess extends DatabaseAccess {
    * Retrieve time series data from KDVH/KDVH-proxy
    */
   override def getAvailableTimeSeries(
-      auth: Option[String],
-      sources: Seq[String],
-      obsTime: Option[TimeSpecification.Range],
-      elements: Seq[String],
-      perfCategory: Seq[String],
-      expCategory: Seq[String],
-      fields: Set[String]): List[ObservationTimeSeries] = {
+    auth: Option[String], requestHost: String, elemInfoGetter: ElementInfoGetter, sources: Seq[String], obsTime: Option[TimeSpecification.Range],
+    elements: Seq[String], perfCategory: Seq[String], expCategory: Seq[String], fields: Set[String]): List[ObservationTimeSeries] = {
 
     val parser: RowParser[ObservationTimeSeries] = {
       get[Option[String]]("sourceId") ~
-      get[Option[String]]("level_type") ~
-      get[Option[Double]]("level_value") ~
-      get[Option[String]]("level_unit") ~
-      get[Option[String]]("level_codetable") ~
-      get[Option[String]]("validFrom") ~
-      get[Option[String]]("validTo") ~
-      get[Option[String]]("timeOffset") ~
-      get[Option[String]]("resultTimeInterval") ~
-      get[Option[String]]("elementId") ~
-      get[Option[String]]("unit") ~
-      get[Option[String]]("codeTable") ~
-      get[Option[String]]("performanceCategory") ~
-      get[Option[String]]("exposureCategory") ~
-      get[Option[String]]("status") map {
-        case sourceId~level_type~level_value~level_unit~level_codetable~validFrom~validTo~timeOffset~resultTimeInterval~elementId~unit~codeTable
-        ~performanceCategory~exposureCategory~status =>
-          ObservationTimeSeries(sourceId, None, Some(Seq(Level(level_type, level_value, level_unit, level_codetable))), validFrom, validTo,
-              timeOffset, resultTimeInterval, elementId, unit, codeTable, performanceCategory, exposureCategory, status, None)
+        get[Option[Double]]("level") ~
+        get[Option[String]]("levelUnit") ~
+        get[Option[String]]("validFrom") ~
+        get[Option[String]]("validTo") ~
+        get[Option[String]]("timeOffset") ~
+        get[Option[String]]("resultTimeInterval") ~
+        get[Option[String]]("elementId") ~
+        get[Option[String]]("unit") ~
+        get[Option[String]]("codeTable") ~
+        get[Option[String]]("performanceCategory") ~
+        get[Option[String]]("exposureCategory") ~
+        get[Option[String]]("status") map {
+        case sourceId~level~levelUnit~validFrom~validTo~timeOffset~resultTimeInterval~elementId~unit~codeTable
+          ~performanceCategory~exposureCategory~status =>
+          ObservationTimeSeries(sourceId, None, if (level.isEmpty || levelUnit.isEmpty) None else Some(Level(None, levelUnit, level)), validFrom, validTo,
+            timeOffset, resultTimeInterval, elementId, unit, codeTable, performanceCategory, exposureCategory, status, None)
       }
     }
 
@@ -296,10 +292,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     val query = s"""
       |SELECT
         |('SN' || stnr::TEXT || ':' || (sensor_nr-1)) AS sourceId ,
-        |'height_above_ground' AS level_type,
-        |coalesce(sensor_level, 0) AS level_value,
-        |coalesce(level_unit, 'm') AS level_unit,
-        |NULL AS level_codetable,
+        |sensor_level AS level,
+        |level_unit AS levelUnit,
         |TO_CHAR(fromdate, '$dateFormat') AS validFrom,
         |TO_CHAR(todate, '$dateFormat') AS validTo,
         |time_offset AS timeOffset,
@@ -330,17 +324,76 @@ class KdvhDatabaseAccess extends DatabaseAccess {
 
     DB.withConnection("kdvh") { implicit conn =>
       val elementsList = if (elements.isEmpty) List[String]() else elements.map(id => replaceWildcards(id).toLowerCase)
-      val result = SQL(insertPlaceholders(query, List(("perfcats", perfCategory.size), ("expcats", expCategory.size))))
+      val obsTimeSeries = SQL(insertPlaceholders(query, List(("perfcats", perfCategory.size), ("expcats", expCategory.size))))
         .on(onArg(List(("elements", elementsList.toList), ("perfcats", perfCategory.toList), ("expcats", expCategory.toList))): _*)
         .as( parser * )
-      result.map (
-        row => row.copy(uri = Some(
-            ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + row.sourceId.get
-              + "&referencetime=" + row.validFrom.get + "/" + row.validTo.getOrElse("2999-12-31T23:59:59Z")
-              + "&elements=" + row.elementId.get
+
+      val elemInfoMap: Map[String, ElementInfo] = elemInfoGetter.getInfoMap(
+        auth, requestHost, obsTimeSeries.filter(_.elementId.nonEmpty).map(_.elementId.get).toSet)
+      //Logger.debug("elemInfoMap: " + elemInfoMap)
+
+      obsTimeSeries.map (
+        ots => ots.copy(
+          uri = Some(
+            ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + ots.sourceId.get
+              + "&referencetime=" + ots.validFrom.get + "/" + ots.validTo.getOrElse("9999-12-31T23:59:59Z")
+              + "&elements=" + ots.elementId.get
               + (if (!perfCategory.isEmpty) "&performancecategory=" + perfCategory.mkString(",") else "")
               + (if (!expCategory.isEmpty) "&exposurecategory=" + expCategory.mkString(",") else "")
-          )
+          ),
+          level = ots.level match {
+            case Some(sensorLevel) => { // i.e. t_elem_map_timeseries contained both level and level unit for this time series
+              Try(elemInfoMap(ots.elementId.get)) match {
+                case scala.util.Success(elemInfo) => {
+                  (elemInfo.json \ "sensorLevels").asOpt[JsObject] match {
+                    case Some(sensorLevels) => {
+
+                      // validate the level type
+                      val ltype: String = (sensorLevels \ "levelType").asOpt[String] match {
+                        case Some(x) => x
+                        case None => throw new InternalServerErrorException(
+                          (s"Sensor level and level unit registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
+                            "but no sensor level type was found for this element in the elements/ endpoint"))
+                      }
+
+                      // validate the level unit
+                      val unit: String = (sensorLevels \ "unit").asOpt[String] match {
+                        case Some(x) => x
+                        case None => throw new InternalServerErrorException(
+                          (s"Sensor level and level unit registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
+                            "but no sensor level unit was found for this element in the elements/ endpoint"))
+                      }
+                      if (unit != sensorLevel.unit.get) throw new InternalServerErrorException(
+                        (s"The sensor level unit registered in t_elem_map_timeseries for ${ots.elementId.get} (${sensorLevel.unit.get}) " +
+                          s"doesn't match the one found for this element in the elements/ endpoint ($unit)"))
+
+                      // validate the level value
+                      val values: Seq[Double] = (sensorLevels \ "values").asOpt[Seq[Double]] match {
+                        case Some(x) => x
+                        case None => throw new InternalServerErrorException(
+                          (s"Sensor level and level unit registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
+                            "but no sensor levels were found for this element in the elements/ endpoint"))
+                      }
+                      if (!values.contains(sensorLevel.value.get)) throw new InternalServerErrorException(
+                        (s"The sensor level value registered in t_elem_map_timeseries for ${ots.elementId.get} (${sensorLevel.value.get}) " +
+                          s"doesn't match any of those found for this element in the elements/ endpoint (${values.mkString(", ")})"))
+
+                      // validation ok, so insert the level type
+                      Some(sensorLevel.copy(levelType = Some(ltype)))
+                    }
+                    case _ => throw new InternalServerErrorException(
+                      (s"Sensor level and level unit registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
+                        "but no sensor level info was found for this element in the elements/ endpoint"))
+                  }
+                }
+                case _ => throw new InternalServerErrorException(
+                  (s"Sensor level and level unit registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
+                    "but no info at all was found for this element in the elements/ endpoint"))
+              }
+            }
+            case _ => None // at least one of level or level unit not defined in t_elem_map_timeseries for this time series; for now we don't care
+              // whether sensor info for this element was found in the elements/ endpoint
+          }
         )
       )
     }
