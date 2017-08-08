@@ -47,7 +47,11 @@ import no.met.data._
 class ProdElementInfoGetter extends ElementInfoGetter {
 
   /**
-    * Get element info from the elements/ endpoint in the [staging-]data.met.no web service.
+    * Gets element info from the elements/ endpoint in the [staging-]data.met.no web service.
+    *
+    * NOTE: This function may invoke doGetInfoMap() repeatedly in order to avoid HTTP error 414 URI Too Long.
+    * Alternatively, the problem could be worked around by using a single POST request rather than multiple GET requests, but this would
+    * require support for POST requests in the elements/ endpoint.
     */
   override def getInfoMap(auth: Option[String], requestHost: String, elementIds: Set[String]): Map[String, ElementInfo] = {
 
@@ -56,6 +60,14 @@ class ProdElementInfoGetter extends ElementInfoGetter {
       case "data.met.no" => "NjU5OTVjZDYtMTE0NS00MDdmLTllNjUtOWMzMTU5ODg5NDk2"  // anonymous ID for data.met.no
       case _ => "ZWNlMTA4NzQtYzQ3My00MmY0LTgxZTUtNmM1NjhkNDgzYWFj" // anonymous ID for staging-data.met.no
     }}")
+
+    val maxElems = 10 // max # of elements to pass to doGetInfoMap(); ### should be as high as possible without causing 414 URI Too Long ... TBD
+    elementIds.grouped(maxElems).foldLeft(Map[String, ElementInfo]()) { (acc, cur) =>
+      acc ++ doGetInfoMap(finalAuth, host, cur)
+    }
+  }
+
+  private def doGetInfoMap(finalAuth: String, host: String, elementIds: Set[String]): Map[String, ElementInfo] = {
 
     val request: WSRequest = WS.url(s"https://$host/elements/v0.jsonld")
       .withHeaders("Authorization" -> finalAuth)
