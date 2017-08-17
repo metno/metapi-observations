@@ -43,6 +43,7 @@ abstract class DatabaseAccess {
     elements: Seq[String],
     perfCategory: Seq[String],
     expCategory: Seq[String],
+    levels: Option[String],
     fields: Set[String]
   ): List[ObservationSeries]
 
@@ -57,6 +58,9 @@ abstract class DatabaseAccess {
     elements: Seq[String],
     perfCategory: Seq[String],
     expCategory: Seq[String],
+    levels: Option[String],
+    levelTypes: Option[String],
+    levelUnits: Option[String],
     fields: Set[String]
   ): List[ObservationTimeSeries]
 

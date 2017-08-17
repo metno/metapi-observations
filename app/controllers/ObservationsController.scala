@@ -50,6 +50,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
     new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def observations( // scalastyle:ignore public.methods.have.type
+    // scalastyle:off line.size.limit
     @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=reference#/sources>sources</a> resource.",
       required = true) sources: String,
     @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=concepts#time_specification>Time Specifications</a> for documentation and examples.",
@@ -60,6 +61,8 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
       required = false) performancecategory: Option[String],
     @ApiParam(value = "Return only data with the specified exposure category. Enter a comma-separated list to specify multiple exposure categories. Leave the query parameter empty to retrieve data regardless of exposure category.",
       required = false) exposurecategory: Option[String],
+    @ApiParam(value = "The sensor levels to get observations for as a comma-separated list of integers, e.g. '2,10,20'. If left out, the output is not filtered on sensor level.",
+      required = false) levels: Option[String],
     @ApiParam(value = "Fields to access",
       required = false,
       allowableValues = "value,unit,qualityCode") fields: Option[String],
@@ -68,6 +71,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
       allowableValues = "jsonld",
       defaultValue = "jsonld") format: String) = no.met.security.AuthorizedAction {
     implicit request =>
+      // scalastyle:on line.size.limit
       val start = DateTime.now(DateTimeZone.UTC)
       val auth = request.headers.get("Authorization")
       val elementDef = elements split "," map (_ trim)
@@ -82,7 +86,8 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
       val fieldDef = FieldSpecification.parse(fields)
       Try {
         // ensure that the query string contains supported fields only
-        QueryStringUtil.ensureSubset(Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "fields"), request.queryString.keySet)
+        QueryStringUtil.ensureSubset(
+          Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "levels", "fields"), request.queryString.keySet)
 
         val sourceDef = SourceSpecification(Some(sources)).stationNumbers
         val timeDef = TimeSpecification.parse(referencetime) match {
@@ -90,7 +95,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
           case Failure(e) => throw new BadRequestException("Failed to parse reference time: " + e.getMessage)
         }
 
-        dataAccess.getObservations(auth, sourceDef, timeDef, elementDef, perfList, expList, fieldDef);
+        dataAccess.getObservations(auth, sourceDef, timeDef, elementDef, perfList, expList, levels, fieldDef);
       } match {
         case Success(data) =>
           if (data isEmpty) {
@@ -126,6 +131,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
     new ApiResponse(code = 404, message = "No data was found for the list of query Ids."), // scalastyle:ignore magic.number
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def timeSeries( // scalastyle:ignore public.methods.have.type
+    // scalastyle:off line.size.limit
     @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/reference#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
       required = false) sources: Option[String],
     @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=concepts#time_specification>Time Specifications</a> for documentation and examples. Leave the query parameter empty to retrieve timeseries for all available periods.",
@@ -136,6 +142,12 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
       required = false) performancecategory: Option[String],
     @ApiParam(value = "Return only time series with the specified exposure category. Enter a comma-separated list to specify multiple exposure categories. Leave the query parameter empty to retrieve timeseries for all available exposure categories.",
       required = false) exposurecategory: Option[String],
+    @ApiParam(value = "The sensor levels to get observations for as a comma-separated list of integers, e.g. '2,10,20'. If left out, the output is not filtered on sensor level.",
+      required = false) levels: Option[String],
+    @ApiParam(value = "The sensor level types to get records for as a comma-separated list of <a href=concepts#searchfilter>search filters</a>. If left out, the output is not filtered on sensor level type.",
+      required = false) levelTypes: Option[String],
+    @ApiParam(value = "The sensor level units to get records for as a comma-separated list of <a href=concepts#searchfilter>search filters</a>. If left out, the output is not filtered on sensor level unit.",
+      required = false) levelUnits: Option[String],
     @ApiParam(value = "Fields to access",
       required = false) fields: Option[String],
     @ApiParam(value = "The output format of the result.",
@@ -143,6 +155,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
       allowableValues = "jsonld",
       defaultValue = "jsonld") format: String) = no.met.security.AuthorizedAction {
     implicit request =>
+      // scalastyle:on line.size.limit
       val start = DateTime.now(DateTimeZone.UTC)
       val elementList: Seq[String] = elements match {
         case Some(elements) => elements split "," map (_ trim)
@@ -159,7 +172,9 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
       val fieldDef = FieldSpecification.parse(fields)
       Try {
         // ensure that the query string contains supported fields only
-        QueryStringUtil.ensureSubset(Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "fields"), request.queryString.keySet)
+        QueryStringUtil.ensureSubset(
+          Set("sources", "referencetime", "elements", "performancecategory", "exposurecategory", "levels", "levelTypes", "levelUnits", "fields"),
+          request.queryString.keySet)
 
         val sourceList = SourceSpecification(sources).stationNumbers
         val timeDef = if (referencetime.isEmpty) None else TimeSpecification.parse(referencetime.get) match {
@@ -168,7 +183,8 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
         }
 
         dataAccess.getAvailableTimeSeries(
-          request.headers.get("Authorization"), request.host, elemInfoGetter, sourceList, timeDef, elementList, perfList, expList, fieldDef)
+          request.headers.get("Authorization"), request.host, elemInfoGetter, sourceList, timeDef, elementList, perfList, expList,
+          levels, levelTypes, levelUnits, fieldDef)
       } match {
         case Success(data) =>
           if (data isEmpty) {

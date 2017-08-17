@@ -63,12 +63,13 @@ class KdvhDatabaseAccess extends DatabaseAccess {
   private val dateFormat = "YYYY-MM-DD\"T\"HH24:MI:SS.\"000Z\""
 
   private def getTimeSeries(
-    sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String]): List[ObservationMeta] = {
+    sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String],
+    levels: Option[String]): List[ObservationMeta] = {
 
     val parser: RowParser[ObservationMeta] = {
       get[Int]("kdvhStNr") ~
         get[Int]("kdvhSensorNr") ~
-        get[Option[Double]]("level") ~
+        get[Option[Int]]("level") ~
         get[String]("kdvhElemCode") ~
         get[String]("elementId") ~
         get[Option[String]]("elementUnit") ~
@@ -96,6 +97,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     val elementsQ = if (elements.isEmpty) "TRUE" else "element_id IN ({elements})"
     val perfCatQ = if (perfCat.isEmpty) "TRUE" else "performance_category IN ({perfcats})"
     val expCatQ = if (expCat.isEmpty) "TRUE" else "exposure_category IN ({expcats})"
+    val levelList = getIntList(levels, "sensor levels")
+    val levelsQ = if (levelList.isEmpty) "TRUE" else "sensor_level::text IN ({levels})"
 
     val query = s"""
       |SELECT
@@ -122,7 +125,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         |$refTimeQ AND
         |$elementsQ AND
         |$perfCatQ AND
-        |$expCatQ
+        |$expCatQ AND
+        |$levelsQ
       |GROUP BY
         |stnr, sensor_nr, sensor_level, elem_code, element_id, unit, code_table_name, table_name,
         |flag_table_name, performance_category, exposure_category
@@ -132,8 +136,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     //Logger.debug(query)
 
     DB.withConnection("kdvh") { implicit connection =>
-      SQL(insertPlaceholders(query, List(("elements", elements.size), ("perfcats", perfCat.size), ("expcats", expCat.size))))
-        .on(onArg(List(("elements", elements.toList), ("perfcats", perfCat.toList), ("expcats", expCat.toList))): _*)
+      SQL(insertPlaceholders(query, List(("elements", elements.size), ("perfcats", perfCat.size), ("expcats", expCat.size), ("levels", levelList.size))))
+        .on(onArg(List(("elements", elements.toList), ("perfcats", perfCat.toList), ("expcats", expCat.toList), ("levels", levelList.map(_.toString)))): _*)
         .as( parser * )
     }
   }
@@ -247,8 +251,10 @@ class KdvhDatabaseAccess extends DatabaseAccess {
 
   }
 
-  override def getObservations(auth: Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String], fields: Set[String]): List[ObservationSeries] = {
-    val timeSeries = getTimeSeries(sources, refTime, elements, perfCat, expCat)
+  override def getObservations(
+    auth: Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String],
+    levels: Option[String], fields: Set[String]): List[ObservationSeries] = { // ### fields not used!
+    val timeSeries = getTimeSeries(sources, refTime, elements, perfCat, expCat, levels)
     val tables = timeSeries.groupBy(_.valueTable)
     getDataFromTimeSeries( tables, refTime )
   }
@@ -258,11 +264,12 @@ class KdvhDatabaseAccess extends DatabaseAccess {
    */
   override def getAvailableTimeSeries(
     auth: Option[String], requestHost: String, elemInfoGetter: ElementInfoGetter, sources: Seq[String], obsTime: Option[TimeSpecification.Range],
-    elements: Seq[String], perfCategory: Seq[String], expCategory: Seq[String], fields: Set[String]): List[ObservationTimeSeries] = {
+    elements: Seq[String], perfCategory: Seq[String], expCategory: Seq[String], levels: Option[String], levelTypes: Option[String], levelUnits: Option[String],
+    fields: Set[String]): List[ObservationTimeSeries] = {
 
     val parser: RowParser[ObservationTimeSeries] = {
       get[Option[String]]("sourceId") ~
-        get[Option[Double]]("level") ~
+        get[Option[Int]]("level") ~
         get[Option[String]]("validFrom") ~
         get[Option[String]]("validTo") ~
         get[Option[String]]("timeOffset") ~
@@ -326,10 +333,12 @@ class KdvhDatabaseAccess extends DatabaseAccess {
 
       val elemInfoMap: Map[String, ElementInfo] = elemInfoGetter.getInfoMap(
         auth, requestHost, obsTimeSeries.filter(_.elementId.nonEmpty).map(_.elementId.get).toSet)
-      //Logger.debug("elemInfoMap: " + elemInfoMap)
 
-      obsTimeSeries.map (
-        ots => ots.copy(
+      val levelList = getIntList(levels, "sensor levels")
+      val levelInfoRequested = !(levelList.isEmpty && levelTypes.getOrElse("").trim.isEmpty && levelUnits.getOrElse("").trim.isEmpty)
+
+      obsTimeSeries
+        .map(ots => ots.copy(
           uri = Some(
             ConfigUtil.urlStart + "observations/v0.jsonld?sources=" + ots.sourceId.get
               + "&referencetime=" + ots.validFrom.get + "/" + ots.validTo.getOrElse("9999-12-31T23:59:59Z")
@@ -337,60 +346,104 @@ class KdvhDatabaseAccess extends DatabaseAccess {
               + (if (!perfCategory.isEmpty) "&performancecategory=" + perfCategory.mkString(",") else "")
               + (if (!expCategory.isEmpty) "&exposurecategory=" + expCategory.mkString(",") else "")
           ),
-          level = ots.level match {
-            case Some(sensorLevel) => { // i.e. t_elem_map_timeseries contained a level for this time series
-              assert(sensorLevel.levelType.isEmpty)
-              assert(sensorLevel.unit.isEmpty)
-              assert(sensorLevel.value.nonEmpty)
-              Try(elemInfoMap(ots.elementId.get)) match {
-                case scala.util.Success(elemInfo) => { // info was found for this element in the elements/ endpoint
-                  (elemInfo.json \ "sensorLevels").asOpt[JsObject] match {
-                    case Some(sensorLevels) => { // the info contains sensor level info
+          level = completeLevelInfo(ots.level, ots.elementId.get, elemInfoMap)
+        ))
+        .filter(ots => if (ots.level.isEmpty) {
+          !levelInfoRequested // keep iff no level info is requested
+        } else {
+          val level = ots.level.get
+          assert(level.value.nonEmpty)
+          (levelList.isEmpty || levelList.contains(level.value.get)) && matchesWords(level.levelType, levelTypes) && matchesWords(level.unit, levelUnits)
+        })
+    }
+  }
 
-                      // get the level type
-                      val ltype: String = (sensorLevels \ "levelType").asOpt[String] match {
-                        case Some(x) => x
-                        case None => throw new InternalServerErrorException(
-                          (s"Sensor level registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
-                            "but no sensor level type was found for this element in the elements/ endpoint"))
-                      }
+  // Returns true iff words is None or w ("" if None) matches any word in the comma-separated list words. The matching is case-insensitive and a word in
+  // words is allowed to contain asterisks to represent zero or more characters.
+  // ### TBD: Move to util package (used also in records and elements modules)
+  private def matchesWords(w: Option[String], words: Option[String]) = {
+    words match {
+      case Some(wlist) => {
+        val w1 = w.getOrElse("").trim.toLowerCase
+        wlist.split(",").toSet.exists((w2: String) => w1.matches(w2.trim.toLowerCase.replace("(", "\\(").replace(")", "\\)").replace("*", ".*")))
+      }
+      case None => true
+    }
+  }
 
-                      // get the level unit
-                      val unit: String = (sensorLevels \ "unit").asOpt[String] match {
-                        case Some(x) => x
-                        case None => throw new InternalServerErrorException(
-                          (s"Sensor level registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
-                            "but no sensor level unit was found for this element in the elements/ endpoint"))
-                      }
+  // Attempts to complete a sensor level object, returning Some(Level) upon success.
+  // Returns None if no level was found. Throws an exception if an inconsistency was detected.
+  // scalastyle:off cyclomatic.complexity
+  private def completeLevelInfo(level: Option[Level], elementId: String, elemInfoMap: Map[String, ElementInfo]): Option[Level] = {
+    level match {
+      case Some(sensorLevel) => { // i.e. t_elem_map_timeseries contained a level for this time series
+        assert(sensorLevel.levelType.isEmpty)
+        assert(sensorLevel.unit.isEmpty)
+        assert(sensorLevel.value.nonEmpty)
+        Try(elemInfoMap(elementId)) match {
+          case scala.util.Success(elemInfo) => { // info was found for this element in the elements/ endpoint
+            (elemInfo.json \ "sensorLevels").asOpt[JsObject] match {
+              case Some(sensorLevels) => { // the info contains sensor level info
 
-                      // get the official levels and ensure that the level is one of those
-                      val values: Seq[Double] = (sensorLevels \ "values").asOpt[Seq[Double]] match {
-                        case Some(x) => x
-                        case None => throw new InternalServerErrorException(
-                          (s"Sensor level registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
-                            "but no sensor levels were found for this element in the elements/ endpoint"))
-                      }
-                      if (!values.contains(sensorLevel.value.get)) throw new InternalServerErrorException(
-                        (s"The sensor level registered in t_elem_map_timeseries for ${ots.elementId.get} (${sensorLevel.value.get}) " +
-                          s"doesn't match any of those found for this element in the elements/ endpoint (${values.mkString(", ")})"))
-
-                      // validation ok, so insert the level type and unit
-                      Some(sensorLevel.copy(levelType = Some(ltype), unit = Some(unit)))
-                    }
-                    case _ => throw new InternalServerErrorException(
-                      (s"Sensor level registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
-                        "but no sensor level info was found for this element in the elements/ endpoint"))
-                  }
+                // get the level type
+                val ltype: String = (sensorLevels \ "levelType").asOpt[String] match {
+                  case Some(x) => x
+                  case None => throw new InternalServerErrorException(
+                    (s"Sensor level registered in t_elem_map_timeseries for $elementId, " +
+                      "but no sensor level type was found for this element in the elements/ endpoint"))
                 }
-                case _ => throw new InternalServerErrorException(
-                  (s"Sensor level registered in t_elem_map_timeseries for ${ots.elementId.get}, " +
-                    "but no info at all was found for this element in the elements/ endpoint"))
+
+                // get the level unit
+                val unit: String = (sensorLevels \ "unit").asOpt[String] match {
+                  case Some(x) => x
+                  case None => throw new InternalServerErrorException(
+                    (s"Sensor level registered in t_elem_map_timeseries for $elementId, " +
+                      "but no sensor level unit was found for this element in the elements/ endpoint"))
+                }
+
+                // get the official levels and ensure that the level is one of those
+                val values: Seq[Int] = (sensorLevels \ "values").asOpt[Seq[Int]] match {
+                  case Some(x) => x
+                  case None => throw new InternalServerErrorException(
+                    (s"Sensor level registered in t_elem_map_timeseries for $elementId, " +
+                      "but no sensor levels were found for this element in the elements/ endpoint"))
+                }
+                if (!values.contains(sensorLevel.value.get)) throw new InternalServerErrorException(
+                  (s"The sensor level registered in t_elem_map_timeseries for $elementId (${sensorLevel.value.get}) " +
+                    s"doesn't match any of those found for this element in the elements/ endpoint (${values.mkString(", ")})"))
+
+                // validation ok, so insert the level type and unit
+                Some(sensorLevel.copy(levelType = Some(ltype), unit = Some(unit)))
               }
+              case _ => throw new InternalServerErrorException(
+                (s"Sensor level registered in t_elem_map_timeseries for $elementId, " +
+                  "but no sensor level info was found for this element in the elements/ endpoint"))
             }
-            case _ => None // no level found in t_elem_map_timeseries for this time series
           }
-        )
-      )
+          case _ => throw new InternalServerErrorException(
+            (s"Sensor level registered in t_elem_map_timeseries for $elementId, " +
+              "but no info at all was found for this element in the elements/ endpoint"))
+        }
+      }
+      case _ => None // no level found in t_elem_map_timeseries for this time series
+    }
+  }
+  // scalastyle:on cyclomatic.complexity
+
+  // Returns a sorted list of integers from an input string of the form "1,7,3" (i.e. a comma-separated list of integers).
+  private def getIntList(os: Option[String], itype: String): List[Int] = {
+
+    def toNonNegativeInt(s: String): Int = {
+      val psingle = "([0-9]+)".r
+      s.trim match {
+        case psingle(a) => a.toInt
+        case _ => throw new BadRequestException(s"$itype: syntax error: $s not a non-negative integer")
+      }
+    }
+
+    os match {
+      case Some(s) => s.split(",").foldLeft(Set[Int]()) { (acc, cur) => acc + toNonNegativeInt(cur) }.toList.sorted
+      case None => List[Int]()
     }
   }
 

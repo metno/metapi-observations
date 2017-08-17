@@ -100,7 +100,7 @@ case class ObservationMeta(
 case class Level(
   @(ApiModelProperty @field)(value="The level type defining the reference for the level value.", example="height_above_ground") levelType: Option[String],
   @(ApiModelProperty @field)(value="The unit of measure of the level data.", example="m") unit: Option[String],
-  @(ApiModelProperty @field)(value="The level values.", example="[5, 10, 20]") value: Option[Double]
+  @(ApiModelProperty @field)(value="The level values.", example="[5, 10, 20]") value: Option[Int]
 )
 
 // Observation Values from KDVH query

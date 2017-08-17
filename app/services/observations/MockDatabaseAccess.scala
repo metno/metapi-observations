@@ -73,6 +73,7 @@ class MockDatabaseAccess extends DatabaseAccess {
     elements: Seq[String],
     perfCategory: Seq[String],
     expCategory: Seq[String],
+    levels: Option[String],
     fields: Set[String]): List[ObservationSeries] = {
     mockDataList.
       filter(s => sources.length == 0 || sources.contains(s.sourceId.get)).
@@ -105,6 +106,9 @@ class MockDatabaseAccess extends DatabaseAccess {
     elements: Seq[String],
     perfCategory: Seq[String],
     expCategory: Seq[String],
+    levels: Option[String],
+    levelTypes: Option[String],
+    levelUnits: Option[String],
     fields: Set[String]): List[ObservationTimeSeries] = {
     mockTimeSerieslist.
       filter(s => sources.length == 0 || sources.contains(s.sourceId.get)).
