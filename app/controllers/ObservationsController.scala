@@ -132,7 +132,7 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
     new ApiResponse(code = 500, message = "Internal server error."))) // scalastyle:ignore magic.number
   def timeSeries( // scalastyle:ignore public.methods.have.type
     // scalastyle:off line.size.limit
-    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID; e.g., _SN18700_ for Blindern. Retrieve the complete station lists using the <a href=\"https://data.met.no/reference#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
+    @ApiParam(value = "The ID(s) of the data sources that you want observations from. Enter a comma-separated list to retrieve data from multiple sources. To retrieve a station, use the MET API station ID: SN&lt;int&gt;[:&lt;int&gt;|all] (e.g. SN18700, SN18700:0, or SN18700:all). 0 is the main sensor and from 1 and up is parallel sensors. Retrieve the complete station lists using the <a href=\"https://data.met.no/reference#/sources\">sources</a> resource. Leave the query parameter empty to retrieve timeseries for all available stations.",
       required = false) sources: Option[String],
     @ApiParam(value = "The time range that you want observations for. Time ranges are specified in an extended ISO-8601 format; see the reference section on <a href=concepts#time_specification>Time Specifications</a> for documentation and examples. Leave the query parameter empty to retrieve timeseries for all available periods.",
       required = false) referencetime: Option[String],
