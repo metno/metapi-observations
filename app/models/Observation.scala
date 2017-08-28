@@ -63,22 +63,22 @@ extends BasicResponse( context, responseType, apiVersion, license, createdAt, qu
 
 @ApiModel(description="Observations at the defined source.")
 case class ObservationSeries(
-  @(ApiModelProperty @field)(value="The sourceId at which this series of values were observed.", example="SN18700") sourceId: Option[String],
-  @(ApiModelProperty @field)(value="Spatial location of the data when it was observed (if known).") geometry: Option[Point],
-  @(ApiModelProperty @field)(value="The level of the data when it was observed (if known).") levels: Option[Level],
-  @(ApiModelProperty @field)(value="The time at which the observation was generated/observed.", dataType="String", example="2012-12-24T11:00:00Z") referenceTime: Option[String],
-  @(ApiModelProperty @field)(value="The values observed at this source. This is a map of the form [ElementId (as a String), Observation]") observations: Option[Seq[Observation]]
+  @(ApiModelProperty @field)(value="The sourceId at which values were observed.", example="SN18700") sourceId: Option[String],
+  @(ApiModelProperty @field)(value="The latitude and longitude at which values were observed (if known).") geometry: Option[Point],
+  @(ApiModelProperty @field)(value="The time at which values were observed.", dataType="String", example="2012-12-24T11:00:00Z") referenceTime: Option[String],
+  @(ApiModelProperty @field)(value="The observed values. This is a map of the form [ElementId (as a String), Observation]") observations: Option[Seq[Observation]]
 )
 
 @ApiModel(description="Observations at the specified time.")
 case class Observation(
   @(ApiModelProperty @field)(value="The id of the element being observed.", example="air_temperature") elementId: Option[String],
-  @(ApiModelProperty @field)(value="The value of the observation.", example="12.7") value: Option[ObsValue],
-  @(ApiModelProperty @field)(value="The unit of measure of the observed data.", example="degC") unit: Option[String],
+  @(ApiModelProperty @field)(value="The observed value.", example="12.7") value: Option[ObsValue],
+  @(ApiModelProperty @field)(value="The unit of measurement of the observed value.", example="degC") unit: Option[String],
   @(ApiModelProperty @field)(value="If the unit is a *code*, the codetable that describes the codes used.", example="beaufort_scale") codeTable: Option[String],
+  @(ApiModelProperty @field)(value="The vertical level at which the value was observed (if known).") level: Option[Level],
   @(ApiModelProperty @field)(value="The performance category of the source when the value was observed.", example="A") performanceCategory: Option[String],
   @(ApiModelProperty @field)(value="The exposure category of the source when the value was observed.", example="1") exposureCategory: Option[String],
-  @(ApiModelProperty @field)(value="The quality control flag of the observed data value.", example="0") qualityCode: Option[Int],
+  @(ApiModelProperty @field)(value="The quality control flag of the observed value.", example="0") qualityCode: Option[Int],
   @(ApiModelProperty @field)(value="The data version of the data value, if one exists (**Note: Currently not available for any observation data).", example="3") dataVersion: Option[Int]
 )
 
@@ -98,9 +98,9 @@ case class ObservationMeta(
 )
 
 case class Level(
-  @(ApiModelProperty @field)(value="The level type defining the reference for the level value.", example="height_above_ground") levelType: Option[String],
-  @(ApiModelProperty @field)(value="The unit of measure of the level data.", example="m") unit: Option[String],
-  @(ApiModelProperty @field)(value="The level values.", example="[5, 10, 20]") value: Option[Int]
+  @(ApiModelProperty @field)(value="The reference type of the level value.", example="height_above_ground") levelType: Option[String],
+  @(ApiModelProperty @field)(value="The unit of measurement of the level value.", example="m") unit: Option[String],
+  @(ApiModelProperty @field)(value="The level value.", example="10") value: Option[Int]
 )
 
 // Observation Values from KDVH query
@@ -132,12 +132,12 @@ object ObservationSeries {
           l :+ new ObservationSeries(
                 Some("SN" + stationId + ":" + sensor ),
                 None,
-                meta.get.sensorLevel,
                 Some(refTime),
                 Some(Seq(Observation(Some(meta.get.elementId),
                                      value,
                                      meta.get.elementUnit,
                                      meta.get.elementCode,
+                                     meta.get.sensorLevel,
                                      Some(meta.get.performanceCategory),
                                      Some(meta.get.exposureCategory),
                                      quality match {

@@ -58,7 +58,6 @@ object JsonFormat extends BasicJsonFormat {
   implicit val observationSeriesWrites: Writes[ObservationSeries] = (
     (JsPath \ "sourceId").writeNullable[String] and
     (JsPath \ "geometry").writeNullable[Point] and
-    (JsPath \ "levels").writeNullable[Level] and
     (JsPath \ "referenceTime").writeNullable[String] and
     (JsPath \ "observations").writeNullable[Seq[Observation]]
   )(unlift(ObservationSeries.unapply))

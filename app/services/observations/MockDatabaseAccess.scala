@@ -50,13 +50,13 @@ class MockDatabaseAccess extends DatabaseAccess {
     ObservationSeries(
         Some("18700"),
         None,
-        None,
         Some("2007-06-01T13:00:00.000Z"),
         Some(List(new Observation(
             Some("air_temperature"),
             Some(ObsValue(12.7)),
             Some("degC"),
             None,
+            Some(Level(None, None, None)),
             Some("1"),
             Some("A"),
             Some(0),
@@ -68,6 +68,8 @@ class MockDatabaseAccess extends DatabaseAccess {
 
   def getObservations(
     auth:Option[String],
+    requestHost: String,
+    elemInfoGetter: ElementInfoGetter,
     sources: Seq[String],
     refTime: TimeSpecification.Range,
     elements: Seq[String],

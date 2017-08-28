@@ -38,6 +38,8 @@ abstract class DatabaseAccess {
     */
   def getObservations(
     auth: Option[String],
+    requestHost: String,
+    elemInfoGetter: ElementInfoGetter,
     stationId: Seq[String],
     obstime: TimeSpecification.Range,
     elements: Seq[String],

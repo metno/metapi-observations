@@ -68,12 +68,10 @@ class ObservationsApplicationLoader extends GuiceApplicationLoader() {
       .loadConfig(context.initialConfiguration)
       .overrides(overrides(context): _*)
 
-    context.environment.mode match {
+    Mode.Prod match {
       case Mode.Prod =>
-        // start mode
         builder.bindings(new ObservationsProdModule)
       case _ =>
-        // run mode
         builder.bindings(new ObservationsNonProdModule)
     }
   }

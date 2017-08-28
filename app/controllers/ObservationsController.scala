@@ -73,7 +73,6 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
     implicit request =>
       // scalastyle:on line.size.limit
       val start = DateTime.now(DateTimeZone.UTC)
-      val auth = request.headers.get("Authorization")
       val elementDef = elements split "," map (_ trim)
       val perfList: Seq[String] = performancecategory match {
         case Some(performancecategory) => performancecategory split "," map (_ trim)
@@ -95,7 +94,8 @@ class ObservationsController @Inject() (dataAccess: DatabaseAccess, elemInfoGett
           case Failure(e) => throw new BadRequestException("Failed to parse reference time: " + e.getMessage)
         }
 
-        dataAccess.getObservations(auth, sourceDef, timeDef, elementDef, perfList, expList, levels, fieldDef);
+        dataAccess.getObservations(
+          request.headers.get("Authorization"), request.host, elemInfoGetter, sourceDef, timeDef, elementDef, perfList, expList, levels, fieldDef)
       } match {
         case Success(data) =>
           if (data isEmpty) {

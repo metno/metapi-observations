@@ -154,7 +154,8 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     s"($alternatives)"
   }
 
-  private def getObservationDataQuery(dataTable : String, flagTable : Option[String], stationId : String, refTime:Seq[Interval], params:Set[String]) : String = {
+  private def getObservationDataQuery(
+    dataTable : String, flagTable : Option[String], stationId : String, refTime:Seq[Interval], params:Set[String]) : String = {
 
     val elems = params.mkString(",")
     /* Note the use of temporary table expressions in order to force oracle_fdw to push down the selections and
@@ -214,7 +215,9 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     }
   }
 
-  private def getDataFromTimeSeries(timeSeries: Map[String, List[ObservationMeta]], refTime: TimeSpecification.Range): List[ObservationSeries] = {
+  private def getDataFromTimeSeries(
+    auth: Option[String], requestHost: String, elemInfoGetter: ElementInfoGetter, timeSeries: Map[String, List[ObservationMeta]],
+    refTime: TimeSpecification.Range): List[ObservationSeries] = {
 
     @annotation.tailrec
     def getRows(c: Option[Cursor], meta:List[ObservationMeta], params: Set[String], l: List[ObservationSeries]): List[ObservationSeries] = c match {
@@ -243,20 +246,32 @@ class KdvhDatabaseAccess extends DatabaseAccess {
       }
     }
 
-    val groups = obsList.groupBy { seriesMeta => (seriesMeta.sourceId, seriesMeta.geometry, seriesMeta.levels, seriesMeta.referenceTime) }
+    val groups = obsList.groupBy { seriesMeta => (seriesMeta.sourceId, seriesMeta.geometry, seriesMeta.referenceTime) }
 
-    val data = groups.map { case (k,v) => ObservationSeries(k._1, k._2, k._3, k._4, Some(v.map(_.observations.getOrElse(Seq[Observation]())).flatten.toSeq ) ) } toList
+    val obsSeries = groups.map { case (k, v) =>
+      ObservationSeries(k._1, k._2, k._3, Some(v.map(_.observations.getOrElse(Seq[Observation]())).flatten.toSeq ) )
+    } toList
 
-    data.sortBy( r => (r.sourceId, r.referenceTime) )
+    val elemInfoMap: Map[String, ElementInfo] = elemInfoGetter.getInfoMap(
+      auth, requestHost, obsSeries.map(os => os.observations.getOrElse(Seq[Observation]()).filter(_.elementId.nonEmpty).map(_.elementId.get)).flatten.toSet
+    )
 
+    obsSeries
+      .map((os: ObservationSeries) => os.copy(
+        observations = Some(os.observations.getOrElse(Seq[Observation]()).map((obs: Observation) => obs.copy(
+          level = completeLevelInfo(obs.level, obs.elementId.get, elemInfoMap)
+        )))
+      ))
+      .sortBy(os => (os.sourceId, os.referenceTime))
   }
 
   override def getObservations(
-    auth: Option[String], sources: Seq[String], refTime: TimeSpecification.Range, elements: Seq[String], perfCat: Seq[String], expCat: Seq[String],
-    levels: Option[String], fields: Set[String]): List[ObservationSeries] = { // ### fields not used!
+    auth: Option[String], requestHost: String, elemInfoGetter: ElementInfoGetter, sources: Seq[String], refTime: TimeSpecification.Range,
+    elements: Seq[String], perfCat: Seq[String], expCat: Seq[String], levels: Option[String],
+    fields: Set[String]): List[ObservationSeries] = { // ### fields not used!
     val timeSeries = getTimeSeries(sources, refTime, elements, perfCat, expCat, levels)
     val tables = timeSeries.groupBy(_.valueTable)
-    getDataFromTimeSeries( tables, refTime )
+    getDataFromTimeSeries(auth, requestHost, elemInfoGetter, tables, refTime)
   }
 
   /**
