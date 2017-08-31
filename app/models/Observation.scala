@@ -26,8 +26,6 @@
 package models
 
 import anorm.{Row, Column, MetaDataItem}
-
-
 import com.github.nscala_time.time.Imports._
 import io.swagger.annotations._
 import java.net.URL
@@ -120,31 +118,28 @@ object ObservationSeries {
     kdvhElements.foldLeft(List.empty[ObservationSeries]) {
       (l, elem) =>
         val stationId = row[Int]("stationid")
-        val refTime = row[String]("referencetime")
-        val meta = obsMeta.find( m => m.kdvhStNr == stationId && m.kdvhElemCode == elem)
-        val sensor = if (meta.isEmpty) 0 else meta.get.kdvhSensorNr
+        val meta = obsMeta.find(m => m.kdvhStNr == stationId && m.kdvhElemCode == elem)
         val value = row[Option[ObsValue]](elem)
-        val quality = Try { row[Option[String]](s"${elem}_flag") } match {
-          case Success(flag) => flag
-          case Failure(x) => None
-        }
-        if (!value.isEmpty) {
+
+        if (meta.nonEmpty && value.nonEmpty) {
           l :+ new ObservationSeries(
-                Some("SN" + stationId + ":" + sensor ),
-                None,
-                Some(refTime),
-                Some(Seq(Observation(Some(meta.get.elementId),
-                                     value,
-                                     meta.get.elementUnit,
-                                     meta.get.elementCode,
-                                     meta.get.sensorLevel,
-                                     Some(meta.get.performanceCategory),
-                                     Some(meta.get.exposureCategory),
-                                     quality match {
-                                      case Some(q) => QualityInformationCalculations.qualityCode(q)
-                                      case None => None
-                                     },
-                                     None))))
+            Some("SN" + stationId + ":" + meta.get.kdvhSensorNr),
+            None,
+            Some(row[String]("referencetime")),
+            Some(Seq(Observation(Some(meta.get.elementId),
+              value,
+              meta.get.elementUnit,
+              meta.get.elementCode,
+              meta.get.sensorLevel,
+              Some(meta.get.performanceCategory),
+              Some(meta.get.exposureCategory),
+              Try {
+                row[Option[String]](s"${elem}_flag")
+              } match {
+                case Success(flag) => if (flag.nonEmpty) QualityInformationCalculations.qualityCode(flag.get) else None
+                case Failure(x) => None
+              },
+              None))))
         } else {
           l
         }
