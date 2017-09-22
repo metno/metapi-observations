@@ -142,10 +142,12 @@ class KdvhDatabaseAccess extends DatabaseAccess {
     }
   }
 
+  private case class ElemPeriod(elem: String, periodSecs: Option[Int])
+
   private def timeQueryFragment(time: Seq[Interval]): String = {
     def sqlStringify(t: Interval): String = {
       if (t.duration == new Duration(0)) {
-        s"dato = TO_DATE('${t.getStart}', '$dateFormat')"
+        s"(dato = TO_DATE('${t.getStart}', '$dateFormat'))"
       } else {
         s"(dato >= TO_DATE('${t.getStart}', '$dateFormat') AND dato < TO_DATE('${t.getEnd}', '$dateFormat'))"
       }
@@ -155,45 +157,120 @@ class KdvhDatabaseAccess extends DatabaseAccess {
   }
 
   private def getObservationDataQuery(
-    dataTable : String, flagTable : Option[String], stationId : String, refTime:Seq[Interval], params:Set[String]) : String = {
+    dataTable : String, flagTable : Option[String], stationId : String, refTime:Seq[Interval], elemPeriods: List[ElemPeriod]) : String = {
 
-    val elems = params.mkString(",")
-    /* Note the use of temporary table expressions in order to force oracle_fdw to push down the selections and
-     * projections on the Oracle database.
-     */
+    val elems = elemPeriods.map(_.elem).mkString(",")
+
+    val prdTolDays = 5 // period tolerance, i.e. a period matches if it is within the interval: <target period days> +- prdTolDays
+    val prdTolSecs = prdTolDays * 86400;
+
+    val tdatoExpr = if (isPeriodTable(dataTable)) s"tdato," else ""
+
+    // Note the use of temporary table expressions (i.e. the WITH clause) in order to force oracle_fdw to push down the selections and
+    // projections on the Oracle database.
+
+    def getPeriodElemsAndFlags(elem: String, useFlagTable: Boolean): String = {
+      elemPeriods.map(_.elem).map(e => if (e == elem) {
+        s"d.$e, ${ if (useFlagTable) s"q.$e" else "NULL" } AS ${e}_flag"
+      } else {
+        s"NULL AS $e, NULL AS ${e}_flag"
+      }).toSet.mkString(",")
+    }
+
     if (flagTable.isEmpty) {
-      val param = params.map(p => s"d.$p, NULL AS ${p}_flag").toSet.mkString(",")
-      s"""|WITH
-            |d AS (SELECT
-              |stnr,
-              |dato,
-              |$elems
-            |FROM
-              |$dataTable
+
+      val allElemsAndFlags = elemPeriods.map(_.elem).map(e => s"d.$e, NULL AS ${e}_flag").toSet.mkString(",")
+
+      val primaryQuery = if (isPeriodTable(dataTable)) {
+        elemPeriods.map((ep: ElemPeriod) => {
+          assert(ep.periodSecs.nonEmpty)
+          s"""
+            |SELECT
+              |d.stnr AS stationId,
+              |TO_CHAR(d.dato, '$dateFormat') AS referenceTime,
+              |${ getPeriodElemsAndFlags(ep.elem, false) }
+            |FROM d
             |WHERE
-              |stnr IN ($stationId) AND
-              |${timeQueryFragment(refTime)})
+              |((EXTRACT(EPOCH FROM d.tdato-d.dato) - ${prdTolSecs}) <= ${ep.periodSecs.get}) AND
+              |((EXTRACT(EPOCH FROM d.tdato-d.dato) + ${prdTolSecs}) >= ${ep.periodSecs.get})
+          """.stripMargin
+        }).mkString(" |UNION ")
+      } else {
+        s"""
           |SELECT
             |d.stnr AS stationId,
             |TO_CHAR(d.dato, '$dateFormat') AS referenceTime,
-            |$param
+            |$allElemsAndFlags
           |FROM d
+        """.stripMargin
+      }
+
+      val withQuery =
+        s"""
+          |WITH
+            |d AS (
+              |SELECT
+                |stnr,
+                |dato,
+                |$tdatoExpr
+                |$elems
+              |FROM $dataTable
+              |WHERE
+                |stnr IN ($stationId) AND
+                |${timeQueryFragment(refTime)})
+          |$primaryQuery
           |ORDER BY
-            |stationId, referenceTime""".stripMargin
-    }
-    else {
-      val param = params.map(p => s"d.$p, q.$p AS ${p}_flag").toSet.mkString(",")
-      s"""|WITH
-            |d AS (SELECT
+            |stationId, referenceTime
+        """.stripMargin
+
+      withQuery
+
+    } else { // flagTable.nonEmpty
+
+      val allElemsAndFlags = elemPeriods.map(_.elem).map(e => s"d.$e, q.$e AS ${e}_flag").toSet.mkString(",")
+
+      val primaryQuery = if (isPeriodTable(dataTable)) {
+        elemPeriods.map((ep: ElemPeriod) => {
+          assert(ep.periodSecs.nonEmpty)
+          s"""
+            |SELECT
+              |d.stnr AS stationId,
+              |TO_CHAR(d.dato, '$dateFormat') AS referenceTime,
+              |${ getPeriodElemsAndFlags(ep.elem, true) }
+            |FROM d, q
+            |WHERE
+              |d.stnr = q.stnr AND
+              |d.dato = q.dato AND
+              |((EXTRACT(EPOCH FROM d.tdato-d.dato) - ${prdTolSecs}) <= ${ep.periodSecs.get}) AND
+              |((EXTRACT(EPOCH FROM d.tdato-d.dato) + ${prdTolSecs}) >= ${ep.periodSecs.get})
+          """.stripMargin
+        }).mkString(" |UNION ")
+      } else {
+        s"""
+          |SELECT
+            |d.stnr AS stationId,
+            |TO_CHAR(d.dato, '$dateFormat') AS referenceTime,
+            |$allElemsAndFlags
+          |FROM d, q
+          |WHERE
+            |d.stnr = q.stnr AND
+            |d.dato = q.dato
+        """.stripMargin
+      }
+
+      val withQuery = s"""
+        |WITH
+          |d AS (
+            |SELECT
               |stnr,
               |dato,
               |$elems
-            |FROM
-              |$dataTable
+            |FROM $dataTable
             |WHERE
               |stnr IN ($stationId) AND
               |${timeQueryFragment(refTime)}),
-            |q AS (SELECT
+          |q AS (
+            |SELECT
               |stnr,
               |dato,
               |$elems
@@ -202,16 +279,40 @@ class KdvhDatabaseAccess extends DatabaseAccess {
             |WHERE
               |stnr IN ($stationId) AND
               |${timeQueryFragment(refTime)})
-          |SELECT
-            |d.stnr AS stationId,
-            |TO_CHAR(d.dato, '$dateFormat') AS referenceTime,
-            |$param
-          |FROM d, q
-          |WHERE
-            |d.stnr = q.stnr AND
-            |d.dato = q.dato
-          |ORDER BY
-            |stationId, referenceTime""".stripMargin
+        |$primaryQuery
+        |ORDER BY
+          |stationId, referenceTime
+        |""".stripMargin
+
+      withQuery
+    }
+  }
+
+  // Returns true iff table contains a tdato column in addition to the dato column.
+  private def isPeriodTable(table: String): Boolean = {
+    Set("t_homogen_month", "t_season").contains(table.toLowerCase())
+  }
+
+  // Returns Some(secs) if the table is a period table (i.e. contains the tdato column) and a supported period can be extracted from the element.
+  // Otherwise returns None.
+  private def getPeriodSecs(table: String, elementId: String): Option[Int] = {
+    val secsInDay = 86400
+    if (isPeriodTable(table)) {
+      val pattern = """.*\s+([^\s\(\)]+)\s*\)\s*$""".r
+      val prdDays: Map[String, Int] = Map("P1D" -> 1, "P1M" -> 30, "P3M" -> 90, "P6M" -> 182, "P11M" -> 334, "P1Y" -> 365)
+      elementId match {
+        case pattern(period) => {
+          val prd = period.toUpperCase
+          if (prdDays.contains(prd)) {
+            Some(prdDays(prd) * secsInDay)
+          } else {
+            throw new InternalServerErrorException(s"Unsupported period found in element $elementId: $prd (supported periods: ${prdDays.keys.mkString(",")})")
+          }
+        }
+        case _ => throw new InternalServerErrorException(s"Failed to extract period from element $elementId using regexp pattern $pattern")
+      }
+    } else {
+      None // n/a
     }
   }
 
@@ -234,11 +335,13 @@ class KdvhDatabaseAccess extends DatabaseAccess {
         val valueTable = t;
         val flagTable = meta(0).flagTable
         val kdvhStNr = meta.map(_.kdvhStNr).toSet.mkString(",")
-        val params = meta.map(_.kdvhElemCode).toSet
-        val query = getObservationDataQuery(valueTable, flagTable, kdvhStNr, refTime, params)
 
+        val elemPeriods = meta.map((om: ObservationMeta) => ElemPeriod(om.kdvhElemCode, getPeriodSecs(valueTable, om.elementId))).toSet
+
+        val query = getObservationDataQuery(valueTable, flagTable, kdvhStNr, refTime, elemPeriods.toList)
         //Logger.debug(query)
 
+        val params = meta.map(_.kdvhElemCode).toSet
         SQL(query).withResult(getRows(_, meta, params, List.empty[ObservationSeries])) match {
           case Right(x) => obsList = x ::: obsList
           case Left(x) => ;
